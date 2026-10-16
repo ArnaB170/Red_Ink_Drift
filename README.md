@@ -8,9 +8,15 @@
 
 ---
 
-## 🎮 Play Online / Quick Start
+## 🎮 Play Online
 
-Open `index.html` directly in any modern web browser or deploy with GitHub Pages:
+👉 **[Play Red Ink Drift in Your Browser!](https://arnab170.github.io/Red_Ink_Drift/)**
+
+No installation or download required — works directly on Desktop, Mobile, and Tablet browsers.
+
+---
+
+### Run Locally
 
 ```bash
 # Clone the repository

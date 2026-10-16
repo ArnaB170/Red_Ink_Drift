@@ -1,0 +1,3123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>RED INK DRIFT — Runaway Grading Pen Arcade</title>
+  <!-- Tailwind CSS for crisp UI overlays -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts for Academic / Handwritten / Stamp Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Architects+Daughter&family=Black+Ops+One&family=Inter:wght@500;600;700;800;900&family=JetBrains+Mono:wght@600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --paper-bg: #fdfaf2;
+      --ink-crimson: #d41924;
+      --ink-dark: #8f0c14;
+      --rule-blue: #c4dff0;
+      --margin-red: #e89fa3;
+    }
+
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #1c1917;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      touch-action: none;
+    }
+
+    .font-hand {
+      font-family: 'Architects Daughter', cursive, sans-serif;
+    }
+
+    .font-stamp {
+      font-family: 'Black Ops One', Impact, sans-serif;
+      letter-spacing: 0.04em;
+    }
+
+    .font-mono-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Custom Paper Card Styling */
+    .notebook-card {
+      background-color: #fdfaf2;
+      background-image: 
+        linear-gradient(90deg, transparent 39px, #e89fa3 39px, #e89fa3 41px, transparent 41px, transparent 44px, #e89fa3 44px, #e89fa3 45px, transparent 45px),
+        repeating-linear-gradient(0deg, transparent, transparent 27px, #d0e4f5 27px, #d0e4f5 28px);
+      box-shadow: 
+        0 20px 50px rgba(0, 0, 0, 0.45),
+        0 4px 12px rgba(0, 0, 0, 0.2),
+        inset 0 0 0 1px rgba(180, 165, 140, 0.4);
+    }
+
+    /* Red Stamp Button Effect */
+    .btn-stamp {
+      background: linear-gradient(180deg, #e11d2a 0%, #b8121d 100%);
+      color: #fff;
+      border: 2px solid #7f0911;
+      box-shadow: 0 5px 0 #7f0911, 0 8px 16px rgba(212, 25, 36, 0.35);
+      transition: transform 0.1s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.1s ease, filter 0.15s ease;
+    }
+
+    .btn-stamp:hover {
+      filter: brightness(1.06);
+      transform: translateY(-2px);
+      box-shadow: 0 7px 0 #7f0911, 0 12px 20px rgba(212, 25, 36, 0.45);
+    }
+
+    .btn-stamp:active {
+      transform: translateY(3px);
+      box-shadow: 0 2px 0 #7f0911, 0 4px 8px rgba(212, 25, 36, 0.25);
+    }
+
+    /* Secondary Ink Outline Button */
+    .btn-paper {
+      background: #fffdf9;
+      color: #292524;
+      border: 2px solid #44403c;
+      box-shadow: 0 4px 0 #44403c;
+      transition: transform 0.1s ease, box-shadow 0.1s ease, background-color 0.15s ease;
+    }
+
+    .btn-paper:hover {
+      background: #f5f0e6;
+      transform: translateY(-1px);
+      box-shadow: 0 5px 0 #44403c;
+    }
+
+    .btn-paper:active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 #44403c;
+    }
+
+    /* Stamp Badge rotation animation */
+    @keyframes stampSlam {
+      0% { transform: scale(2.4) rotate(-14deg); opacity: 0; }
+      70% { transform: scale(0.93) rotate(-6deg); opacity: 1; }
+      85% { transform: scale(1.04) rotate(-8deg); }
+      100% { transform: scale(1) rotate(-7deg); opacity: 1; }
+    }
+
+    .animate-stamp {
+      animation: stampSlam 0.38s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    @keyframes pulseDanger {
+      0%, 100% { opacity: 0.95; transform: scale(1); }
+      50% { opacity: 0.65; transform: scale(0.98); }
+    }
+
+    .animate-danger-banner {
+      animation: pulseDanger 0.55s ease-in-out infinite;
+    }
+
+    #gameCanvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      cursor: crosshair;
+    }
+
+    /* Custom Range Slider */
+    input[type="range"] {
+      accent-color: #d41924;
+    }
+  </style>
+</head>
+<body class="relative w-full h-full overflow-hidden select-none">
+
+  <!-- MAIN GAME CANVAS -->
+  <canvas id="gameCanvas"></canvas>
+
+  <!-- =====================================================================
+       GAMEPLAY HUD OVERLAY
+       ===================================================================== -->
+  <div id="hudOverlay" class="hidden pointer-events-none fixed inset-0 z-20 flex flex-col justify-between p-2.5 sm:p-4">
+    <!-- Top HUD Bar -->
+    <div class="flex flex-wrap items-start justify-between gap-2 w-full max-w-7xl mx-auto">
+      
+      <!-- Left: Score, Best & Combo -->
+      <div class="flex items-center gap-2 sm:gap-3 bg-[#fdfaf2]/95 backdrop-blur-sm border-2 border-stone-800 rounded-xl px-3 py-1.5 sm:px-4 sm:py-2 shadow-[0_4px_0_#292524]">
+        <div>
+          <div class="text-[10px] sm:text-xs font-extrabold uppercase tracking-wider text-stone-500">Score</div>
+          <div id="hudScore" class="font-mono-num text-xl sm:text-3xl font-extrabold text-stone-900 leading-none">0</div>
+        </div>
+
+        <div class="h-8 w-[2px] bg-stone-300 mx-0.5 sm:mx-1"></div>
+
+        <div>
+          <div class="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-stone-400">Best</div>
+          <div id="hudBest" class="font-mono-num text-sm sm:text-lg font-bold text-stone-700 leading-none">0</div>
+        </div>
+
+        <div class="h-8 w-[2px] bg-stone-300 mx-0.5 sm:mx-1"></div>
+
+        <!-- Combo Badge & Decay Bar -->
+        <div class="flex flex-col min-w-[68px] sm:min-w-[84px]">
+          <div class="flex items-baseline justify-between">
+            <span class="text-[10px] sm:text-xs font-extrabold uppercase tracking-wider text-red-700">Grade Curve</span>
+            <span id="hudCombo" class="font-stamp text-base sm:text-xl text-red-600 leading-none">x1</span>
+          </div>
+          <div class="w-full h-1.5 bg-stone-200 rounded-full overflow-hidden mt-1 border border-stone-300">
+            <div id="hudComboBar" class="h-full bg-gradient-to-r from-red-600 to-amber-500 transition-all duration-75" style="width: 0%"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Center: Survival Clock & Coffee Spill Countdown / Status Banners -->
+      <div class="flex flex-col items-center gap-1.5">
+        <div class="flex items-center gap-3 bg-[#fdfaf2]/95 backdrop-blur-sm border-2 border-stone-800 rounded-xl px-3 py-1.5 sm:px-4 sm:py-2 shadow-[0_4px_0_#292524]">
+          <div class="flex items-center gap-1.5">
+            <span class="inline-block w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse"></span>
+            <span class="text-[10px] sm:text-xs font-extrabold uppercase tracking-wider text-stone-500">Time</span>
+            <span id="hudTime" class="font-mono-num text-sm sm:text-lg font-extrabold text-stone-900">00:00</span>
+          </div>
+
+          <div class="h-5 w-[2px] bg-stone-300"></div>
+
+          <!-- Next Coffee Boss Indicator -->
+          <div class="flex items-center gap-1.5" title="Coffee Spill Boss occurs every 60 seconds">
+            <span class="text-sm sm:text-base">☕</span>
+            <div class="flex flex-col">
+              <span class="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-amber-900 leading-none">Coffee Spill</span>
+              <span id="hudCoffeeTimer" class="font-mono-num text-xs sm:text-sm font-bold text-amber-800 leading-tight">60s</span>
+            </div>
+          </div>
+
+          <div class="hidden md:flex h-5 w-[2px] bg-stone-300"></div>
+
+          <!-- Graded Count -->
+          <div class="hidden md:flex items-center gap-1.5">
+            <span class="font-stamp text-xs text-red-600 border border-red-600 rounded px-1">F-</span>
+            <span id="hudGradedCount" class="font-mono-num text-sm font-bold text-stone-800">0</span>
+          </div>
+        </div>
+
+        <!-- Dynamic Status Pill (White-Out Lock / Loop Ready / Boss Warning) -->
+        <div id="hudStatusBanner" class="hidden px-3.5 py-1 rounded-full font-extrabold text-xs sm:text-sm tracking-wide uppercase shadow-md border-2 transition-all"></div>
+      </div>
+
+      <!-- Right: Rocket Boost Bar & Quick Controls -->
+      <div class="flex items-center gap-2 pointer-events-auto">
+        <!-- Rocket Boost Gauge -->
+        <div class="flex flex-col bg-[#fdfaf2]/95 backdrop-blur-sm border-2 border-stone-800 rounded-xl px-2.5 py-1.5 sm:px-3 sm:py-2 shadow-[0_4px_0_#292524] min-w-[92px] sm:min-w-[120px]">
+          <div class="flex justify-between items-center text-[10px] sm:text-xs font-extrabold uppercase tracking-wider text-stone-700">
+            <span>🚀 Ink Boost</span>
+            <span id="hudBoostPct" class="font-mono-num text-red-600">100%</span>
+          </div>
+          <div class="w-full h-2 bg-stone-200 rounded-full overflow-hidden mt-1 border border-stone-400">
+            <div id="hudBoostBar" class="h-full bg-gradient-to-r from-red-600 via-orange-500 to-amber-400 transition-all duration-75" style="width: 100%"></div>
+          </div>
+        </div>
+
+        <!-- Mute Toggle Button -->
+        <button id="btnHudMute" class="btn-paper w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center text-lg" title="Toggle Sound (M)" aria-label="Toggle Sound">
+          <span id="iconHudMute">🔊</span>
+        </button>
+
+        <!-- Pause Button -->
+        <button id="btnHudPause" class="btn-paper w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center text-base font-extrabold" title="Pause Game (Esc / P)" aria-label="Pause Game">
+          ⏸
+        </button>
+      </div>
+    </div>
+
+    <!-- Bottom Mobile / Touch Controls & Desktop Hint -->
+    <div class="w-full max-w-7xl mx-auto flex items-end justify-between pointer-events-none pb-1 sm:pb-2">
+      <!-- Touch Steering Left / Right -->
+      <div id="touchControlsLeft" class="flex gap-2.5 pointer-events-auto md:opacity-40 hover:opacity-100 transition-opacity">
+        <button id="btnTouchLeft" class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-[#fdfaf2]/90 active:bg-red-100 border-2 border-stone-800 shadow-[0_4px_0_#292524] active:translate-y-1 flex flex-col items-center justify-center text-stone-900 select-none">
+          <svg class="w-7 h-7 sm:w-8 sm:h-8 stroke-[2.8]" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+          <span class="text-[10px] font-extrabold uppercase tracking-wider">Left</span>
+        </button>
+        <button id="btnTouchRight" class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-[#fdfaf2]/90 active:bg-red-100 border-2 border-stone-800 shadow-[0_4px_0_#292524] active:translate-y-1 flex flex-col items-center justify-center text-stone-900 select-none">
+          <svg class="w-7 h-7 sm:w-8 sm:h-8 stroke-[2.8]" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+          <span class="text-[10px] font-extrabold uppercase tracking-wider">Right</span>
+        </button>
+      </div>
+
+      <!-- Desktop Subtle Control Hint -->
+      <div class="hidden lg:flex items-center gap-2 bg-[#fdfaf2]/85 border border-stone-400/80 rounded-full px-3.5 py-1 text-xs font-semibold text-stone-600 shadow-sm">
+        <span><kbd class="px-1.5 py-0.5 bg-white border border-stone-300 rounded text-stone-800 font-mono-num">A/D</kbd> or <kbd class="px-1.5 py-0.5 bg-white border border-stone-300 rounded text-stone-800 font-mono-num">◀/▶</kbd> Steer</span>
+        <span>•</span>
+        <span><kbd class="px-1.5 py-0.5 bg-white border border-stone-300 rounded text-stone-800 font-mono-num">SPACE</kbd> Rocket Boost</span>
+        <span>•</span>
+        <span class="text-red-700 font-bold">Circle Bad Answers to Grade &amp; Clear Ink!</span>
+      </div>
+
+      <!-- Touch Boost Button -->
+      <div class="pointer-events-auto md:opacity-40 hover:opacity-100 transition-opacity">
+        <button id="btnTouchBoost" class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-b from-red-600 to-red-700 active:from-red-700 active:to-red-800 text-white border-2 border-red-950 shadow-[0_4px_0_#450a0a] active:translate-y-1 flex flex-col items-center justify-center select-none">
+          <span class="text-xl sm:text-2xl leading-none">🚀</span>
+          <span class="text-[10px] font-extrabold uppercase tracking-wider mt-1">Boost</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       MAIN MENU OVERLAY
+       ===================================================================== -->
+  <div id="menuOverlay" class="fixed inset-0 z-30 flex items-center justify-center p-4 bg-stone-950/35 backdrop-blur-[2px]">
+    <div class="notebook-card relative w-full max-w-lg rounded-2xl p-6 sm:p-8 border-2 border-stone-800 text-stone-900 overflow-hidden">
+      
+      <!-- Decorative Top-Right Graded Stamp -->
+      <div class="animate-stamp absolute -top-2 -right-2 sm:top-4 sm:right-5 border-4 border-red-600 text-red-600 font-stamp px-3 py-1 rounded-md text-xs sm:text-sm uppercase tracking-widest pointer-events-none bg-[#fdfaf2]/90 shadow-sm">
+        A+ ARCADE EDITION
+      </div>
+
+      <!-- Header / Title Logo -->
+      <div class="pl-6 sm:pl-8">
+        <div class="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-widest text-red-700 bg-red-100 border border-red-300 rounded-full px-3 py-0.5 mb-2">
+          <span>✒️ Dept. of Extreme Grading</span>
+        </div>
+        <h1 class="font-stamp text-4xl sm:text-6xl text-stone-900 tracking-tight leading-none">
+          RED INK <span class="text-red-600 underline decoration-wavy decoration-red-500/80">DRIFT</span>
+        </h1>
+        <p class="font-hand text-base sm:text-lg text-stone-700 mt-2 leading-snug">
+          You are a runaway, rocket-powered red grading pen on an endless exam sheet. Circle terrible student answers to grade them &amp; dissolve your lethal ink trail!
+        </p>
+
+        <!-- Quick Visual Feature Pills -->
+        <div class="grid grid-cols-3 gap-2 my-5">
+          <div class="bg-amber-50/90 border border-stone-300 rounded-xl p-2.5 text-center">
+            <div class="text-xl">⭕</div>
+            <div class="text-xs font-extrabold text-stone-800 mt-0.5">Circle &amp; Grade</div>
+            <div class="text-[10px] text-stone-600 leading-tight mt-0.5">Enclose answers to clear loop &amp; score</div>
+          </div>
+          <div class="bg-rose-50/90 border border-stone-300 rounded-xl p-2.5 text-center">
+            <div class="text-xl">🧼</div>
+            <div class="text-xs font-extrabold text-stone-800 mt-0.5">Stationery Traps</div>
+            <div class="text-[10px] text-stone-600 leading-tight mt-0.5">Dodge Giant Erasers &amp; White-Out</div>
+          </div>
+          <div class="bg-orange-50/90 border border-stone-300 rounded-xl p-2.5 text-center">
+            <div class="text-xl">☕</div>
+            <div class="text-xs font-extrabold text-stone-800 mt-0.5">60s Coffee Boss</div>
+            <div class="text-[10px] text-stone-600 leading-tight mt-0.5">Survive massive espresso waves</div>
+          </div>
+        </div>
+
+        <!-- High Score Banner -->
+        <div class="flex items-center justify-between bg-stone-900 text-[#fdfaf2] rounded-xl px-4 py-2.5 mb-5 shadow-inner">
+          <div class="flex items-center gap-2">
+            <span class="text-amber-400 text-lg">🏆</span>
+            <span class="text-xs font-bold uppercase tracking-wider text-stone-300">Tenure Track Record</span>
+          </div>
+          <span id="menuBestScore" class="font-mono-num text-xl font-extrabold text-amber-400">0</span>
+        </div>
+
+        <!-- Primary Action Buttons -->
+        <div class="flex flex-col gap-3">
+          <button id="btnStartGame" class="btn-stamp w-full py-3.5 px-6 rounded-xl font-stamp text-xl sm:text-2xl tracking-wider uppercase flex items-center justify-center gap-3">
+            <span>START GRADING</span>
+            <span class="text-2xl">✒️</span>
+          </button>
+
+          <div class="grid grid-cols-3 gap-2.5">
+            <button id="btnOpenHowTo" class="btn-paper py-2.5 px-3 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5">
+              <span>📖</span> <span>How to Play</span>
+            </button>
+            <button id="btnOpenSettings" class="btn-paper py-2.5 px-3 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5">
+              <span>⚙️</span> <span>Settings</span>
+            </button>
+            <button id="btnMenuMute" class="btn-paper py-2.5 px-3 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5">
+              <span id="iconMenuMute">🔊</span> <span id="labelMenuMute">Sound: ON</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       HOW TO PLAY MODAL
+       ===================================================================== -->
+  <div id="howToModal" class="hidden fixed inset-0 z-40 flex items-center justify-center p-4 bg-stone-950/60 backdrop-blur-xs">
+    <div class="notebook-card relative w-full max-w-xl rounded-2xl p-6 sm:p-8 border-2 border-stone-800 text-stone-900 max-h-[90vh] overflow-y-auto">
+      <div class="pl-6 sm:pl-8">
+        <div class="flex items-center justify-between border-b-2 border-stone-300 pb-3 mb-4">
+          <h2 class="font-stamp text-2xl sm:text-3xl text-red-700">SYLLABUS &amp; GRADING RULES</h2>
+          <button id="btnCloseHowTo" class="btn-paper w-9 h-9 rounded-lg font-extrabold text-stone-700 flex items-center justify-center">✕</button>
+        </div>
+
+        <div class="space-y-4 text-sm text-stone-800">
+          <div class="flex gap-3 items-start bg-white/80 p-3 rounded-xl border border-stone-300">
+            <div class="text-2xl shrink-0">⭕</div>
+            <div>
+              <h3 class="font-extrabold text-stone-900 text-base">1. Circle Terrible Answers to Grade Them</h3>
+              <p class="text-stone-600 mt-0.5 leading-relaxed">
+                Your pen never stops moving and leaves a <strong class="text-red-600">lethal red ink trail</strong>. Steer around an ungraded student answer (like <span class="font-hand text-blue-800 bg-blue-50 px-1.5 rounded">"2 + 2 = 5"</span>) and close the loop!
+              </p>
+              <p class="text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-lg px-2.5 py-1 mt-1.5">
+                💡 TIP: Closing a loop around an answer is SAFE—it dissolves that ink loop, stamps a giant red grade, and builds your Combo Multiplier!
+              </p>
+            </div>
+          </div>
+
+          <div class="flex gap-3 items-start bg-white/80 p-3 rounded-xl border border-stone-300">
+            <div class="text-2xl shrink-0">💀</div>
+            <div>
+              <h3 class="font-extrabold text-stone-900 text-base">2. Avoid Self-Collisions &amp; Giant Erasers</h3>
+              <p class="text-stone-600 mt-0.5 leading-relaxed">
+                Crossing your own ink trail <em>without</em> enclosing a student answer causes an immediate ink-splatter crash! Also watch out for patrolling <strong class="text-pink-600">Pink Pearl Erasers</strong>—they telegraph their turns with dashed arrows.
+              </p>
+            </div>
+          </div>
+
+          <div class="flex gap-3 items-start bg-white/80 p-3 rounded-xl border border-stone-300">
+            <div class="text-2xl shrink-0">🤍</div>
+            <div>
+              <h3 class="font-extrabold text-stone-900 text-base">3. White-Out Puddles &amp; 60s Coffee Spill Boss</h3>
+              <p class="text-stone-600 mt-0.5 leading-relaxed">
+                Passing through <strong class="text-stone-700">White-Out Correction Fluid</strong> coats your nib and locks your steering straight ahead for <strong>1.0 second</strong>. Every <strong>60 seconds</strong>, a <strong class="text-amber-900">Coffee Mug</strong> tips over—steer into the safe zone before the espresso wave floods the sheet!
+              </p>
+            </div>
+          </div>
+
+          <div class="bg-stone-900 text-stone-100 rounded-xl p-3.5 text-xs flex flex-wrap justify-between gap-2">
+            <div><strong class="text-amber-400">STEER:</strong> A / D or Left / Right Arrows (or Touch Buttons)</div>
+            <div><strong class="text-amber-400">BOOST:</strong> Spacebar / Boost Button</div>
+            <div><strong class="text-amber-400">PAUSE / RESTART:</strong> Esc / R</div>
+          </div>
+        </div>
+
+        <button id="btnHowToGotIt" class="btn-stamp w-full mt-5 py-3 rounded-xl font-stamp text-lg tracking-wider">
+          UNDERSTOOD — LET'S GRADE!
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       SETTINGS MODAL
+       ===================================================================== -->
+  <div id="settingsModal" class="hidden fixed inset-0 z-40 flex items-center justify-center p-4 bg-stone-950/60 backdrop-blur-xs">
+    <div class="notebook-card relative w-full max-w-md rounded-2xl p-6 sm:p-8 border-2 border-stone-800 text-stone-900">
+      <div class="pl-6 sm:pl-8">
+        <div class="flex items-center justify-between border-b-2 border-stone-300 pb-3 mb-5">
+          <h2 class="font-stamp text-2xl text-stone-900">FACULTY SETTINGS</h2>
+          <button id="btnCloseSettings" class="btn-paper w-9 h-9 rounded-lg font-extrabold text-stone-700 flex items-center justify-center">✕</button>
+        </div>
+
+        <div class="space-y-4 text-sm">
+          <!-- Sound On/Off -->
+          <div class="flex items-center justify-between bg-white/80 p-3 rounded-xl border border-stone-300">
+            <div>
+              <div class="font-extrabold text-stone-900">Sound Effects</div>
+              <div class="text-xs text-stone-500">Procedural pen, stamp &amp; splash audio</div>
+            </div>
+            <button id="btnSettingSound" class="btn-paper px-4 py-1.5 rounded-lg font-extrabold text-xs">ON</button>
+          </div>
+
+          <!-- Master Volume -->
+          <div class="bg-white/80 p-3 rounded-xl border border-stone-300">
+            <div class="flex justify-between font-extrabold text-stone-900 mb-1.5">
+              <span>Master Volume</span>
+              <span id="labelSettingVolume" class="font-mono-num text-red-600">50%</span>
+            </div>
+            <input id="sliderVolume" type="range" min="0" max="100" value="50" class="w-full cursor-pointer" />
+          </div>
+
+          <!-- Reduced Motion / Screen Shake -->
+          <div class="flex items-center justify-between bg-white/80 p-3 rounded-xl border border-stone-300">
+            <div>
+              <div class="font-extrabold text-stone-900">Screen Shake &amp; Motion</div>
+              <div class="text-xs text-stone-500">Disable camera shake on impacts &amp; boss</div>
+            </div>
+            <button id="btnSettingShake" class="btn-paper px-4 py-1.5 rounded-lg font-extrabold text-xs">NORMAL</button>
+          </div>
+
+          <!-- Ink Trail Persistence Preset -->
+          <div class="flex items-center justify-between bg-white/80 p-3 rounded-xl border border-stone-300">
+            <div>
+              <div class="font-extrabold text-stone-900">Ink Drying Time</div>
+              <div class="text-xs text-stone-500">How long unlooped ink stays wet &amp; lethal</div>
+            </div>
+            <button id="btnSettingTrail" class="btn-paper px-3 py-1.5 rounded-lg font-extrabold text-xs">STANDARD</button>
+          </div>
+
+          <!-- Practice Trigger Coffee Boss -->
+          <div class="flex items-center justify-between bg-amber-50/90 p-3 rounded-xl border border-amber-300">
+            <div>
+              <div class="font-extrabold text-amber-950">☕ Test Coffee Spill Boss</div>
+              <div class="text-xs text-amber-800">Trigger the 60s Coffee Boss immediately in-game</div>
+            </div>
+            <button id="btnTriggerCoffeeNow" class="btn-paper px-3 py-1.5 rounded-lg font-extrabold text-xs text-amber-900 border-amber-800">SPILL NOW</button>
+          </div>
+        </div>
+
+        <button id="btnSaveSettings" class="btn-stamp w-full mt-6 py-3 rounded-xl font-stamp text-lg tracking-wider">
+          SAVE &amp; RETURN
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       PAUSE MODAL OVERLAY
+       ===================================================================== -->
+  <div id="pauseOverlay" class="hidden fixed inset-0 z-30 flex items-center justify-center p-4 bg-stone-950/55 backdrop-blur-xs">
+    <div class="notebook-card relative w-full max-w-sm rounded-2xl p-6 sm:p-7 border-2 border-stone-800 text-stone-900 text-center">
+      <div class="pl-5">
+        <div class="inline-block border-4 border-amber-600 text-amber-700 font-stamp px-3 py-0.5 rounded text-sm uppercase mb-2 -rotate-3">
+          OFFICE HOURS
+        </div>
+        <h2 class="font-stamp text-3xl text-stone-900">EXAM PAUSED</h2>
+        <p class="font-hand text-stone-600 text-sm mt-1 mb-5">Take a breath. The red ink is still wet.</p>
+
+        <div class="flex flex-col gap-2.5">
+          <button id="btnResumeGame" class="btn-stamp py-3 rounded-xl font-stamp text-lg tracking-wider">
+            ▶ RESUME GRADING
+          </button>
+          <button id="btnPauseRestart" class="btn-paper py-2.5 rounded-xl font-extrabold text-sm">
+            🔄 Restart Sheet (R)
+          </button>
+          <button id="btnPauseSettings" class="btn-paper py-2.5 rounded-xl font-extrabold text-sm">
+            ⚙️ Settings
+          </button>
+          <button id="btnPauseMainMenu" class="btn-paper py-2.5 rounded-xl font-extrabold text-sm text-red-700">
+            🏠 Main Menu
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       GAME OVER OVERLAY
+       ===================================================================== -->
+  <div id="gameOverOverlay" class="hidden fixed inset-0 z-30 flex items-center justify-center p-4 bg-stone-950/60 backdrop-blur-xs">
+    <div class="notebook-card relative w-full max-w-md rounded-2xl p-6 sm:p-8 border-2 border-stone-800 text-stone-900 overflow-hidden">
+      
+      <!-- Big Animated Stamp -->
+      <div id="gameOverStamp" class="animate-stamp absolute top-4 right-4 border-4 border-red-600 text-red-600 font-stamp px-3 py-1 rounded text-sm sm:text-base uppercase bg-[#fdfaf2]/95 shadow">
+        INK CRASH!
+      </div>
+
+      <div class="pl-6 sm:pl-8">
+        <div id="gameOverCause" class="text-xs font-extrabold uppercase tracking-wider text-red-700 mb-1">
+          Crossed Your Own Red Ink Trail
+        </div>
+        <h2 class="font-stamp text-3xl sm:text-4xl text-stone-900 leading-none">
+          GRADING TERMINATED
+        </h2>
+        <p id="gameOverJoke" class="font-hand text-base sm:text-lg text-stone-700 mt-2 italic">
+          "You survived longer than this student's GPA."
+        </p>
+
+        <!-- Score Breakdown Card -->
+        <div class="bg-white/90 border-2 border-stone-800 rounded-xl p-4 my-5 shadow-[0_4px_0_#292524]">
+          <div class="flex items-baseline justify-between border-b border-stone-200 pb-2.5 mb-2.5">
+            <span class="text-xs font-extrabold uppercase tracking-wider text-stone-500">Final Score</span>
+            <div class="flex items-center gap-2">
+              <span id="newRecordBadge" class="hidden bg-amber-400 text-stone-950 font-extrabold text-[10px] px-2 py-0.5 rounded-full uppercase">NEW RECORD!</span>
+              <span id="goFinalScore" class="font-mono-num text-3xl font-extrabold text-red-600">0</span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-3 gap-2 text-center">
+            <div class="bg-stone-100 rounded-lg p-2">
+              <div class="text-[10px] font-bold uppercase text-stone-500">Best Score</div>
+              <div id="goBestScore" class="font-mono-num text-sm sm:text-base font-extrabold text-stone-800 mt-0.5">0</div>
+            </div>
+            <div class="bg-stone-100 rounded-lg p-2">
+              <div class="text-[10px] font-bold uppercase text-stone-500">Max Combo</div>
+              <div id="goMaxCombo" class="font-mono-num text-sm sm:text-base font-extrabold text-red-600 mt-0.5">x1</div>
+            </div>
+            <div class="bg-stone-100 rounded-lg p-2">
+              <div class="text-[10px] font-bold uppercase text-stone-500">Graded</div>
+              <div id="goAnswersGraded" class="font-mono-num text-sm sm:text-base font-extrabold text-stone-800 mt-0.5">0</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex flex-col sm:flex-row gap-2.5">
+          <button id="btnPlayAgain" class="btn-stamp flex-1 py-3.5 px-5 rounded-xl font-stamp text-lg sm:text-xl tracking-wider flex items-center justify-center gap-2">
+            <span>🔄 GRADE AGAIN</span>
+            <span class="text-xs font-sans font-extrabold opacity-80">(R)</span>
+          </button>
+          <button id="btnGoMainMenu" class="btn-paper py-3.5 px-4 rounded-xl font-extrabold text-sm text-stone-800">
+            Menu
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       COMPLETE MODULAR GAME ENGINE SCRIPT
+       ===================================================================== -->
+  <script>
+    "use strict";
+
+    /* =====================================================================
+       1. CONFIGURATION, ACADEMIC CONTENT & CONSTANTS
+       ===================================================================== */
+    const CONFIG = {
+      // Pen Movement & Physics
+      BASE_SPEED: 235,            // Pixels per second base velocity
+      MAX_SPEED: 350,             // Cap on progressive speed scaling
+      SPEED_RAMP_PER_SEC: 0.65,   // Gradual acceleration over survival time
+      BOOST_MULTIPLIER: 1.52,     // Speed boost factor when Spacebar held
+      TURN_RATE: 3.45,            // Radians per second steering angular velocity
+      BOOST_TURN_RATE: 2.85,      // Slightly wider arc while boosting
+      PEN_HITBOX_RADIUS: 6.5,     // Collision radius of the pen nib
+
+      // Ink Trail Settings
+      TRAIL_SAMPLE_DIST: 7.5,     // Distance between sampled trail vertices
+      TRAIL_WIDTH: 7.5,           // Visual stroke width of crimson ink trail
+      SELF_COLLISION_SKIP: 16,    // Number of newest segments near nib ignored for self-collision
+      LOOP_SNAP_RADIUS: 28,       // Forgiving proximity snap distance when closing a loop around an answer
+      MIN_LOOP_SEGMENTS: 18,      // Minimum segments required to form a valid grading loop
+
+      // Trail Max Length Presets (in vertices; 1 vertex ≈ 7.5px)
+      TRAIL_PRESETS: {
+        STANDARD: 190,            // ~1425px of active wet ink
+        LONG: 310,                // ~2325px of active wet ink
+        ENDLESS: 950              // Virtually endless exam sheet trail
+      },
+
+      // Combo & Scoring
+      SURVIVAL_PTS_PER_SEC: 12,
+      GRADE_BASE_POINTS: 250,
+      COMBO_DURATION: 9.0,        // Seconds before combo multiplier decays
+
+      // Hazards & Boss Timing
+      WHITE_OUT_LOCK_DURATION: 1.0, // Exact 1.00 second steering lock per spec
+      COFFEE_BOSS_INTERVAL: 60.0,   // Every 60 seconds of active survival
+      COFFEE_WARNING_TIME: 3.6,     // Warning phase duration
+      COFFEE_ACTIVE_TIME: 6.2,      // Active flood wave duration
+      COFFEE_RECEDE_TIME: 2.2       // Receding & staining phase
+    };
+
+    const STUDENT_ANSWERS_POOL = [
+      { text: "2 + 2 = 5 (for large 2)", doodle: "math" },
+      { text: "x = vibes", doodle: "shrug" },
+      { text: "Proof: trust me bro", doodle: "crown" },
+      { text: "AI wrote this", doodle: "robot" },
+      { text: "Q.E.D. (probably)", doodle: "box" },
+      { text: "sin(x)/n = six = 6", doodle: "math" },
+      { text: "π = 3 (close enough)", doodle: "pie" },
+      { text: "lim x→∞ = big", doodle: "infinity" },
+      { text: "dog ate my citation", doodle: "dog" },
+      { text: "0 / 0 = 1 (obviously)", doodle: "sad" },
+      { text: "see back (page blank)", doodle: "arrow" },
+      { text: "Δy / Δx = y / x", doodle: "math" },
+      { text: "F = m + a (ish)", doodle: "apple" },
+      { text: "Source: a dream I had", doodle: "cloud" },
+      { text: "∫ e^x dx = ex + C", doodle: "sad" },
+      { text: "c² = a² + b² - Vibes", doodle: "triangle" },
+      { text: "mitochondria = grades", doodle: "cell" },
+      { text: "I was sick in 2019", doodle: "shrug" }
+    ];
+
+    const GRADE_STAMPS = [
+      "WRONG!", "F-", "SEE ME!", "0 / 10", "NOPE!", "GRADED", "CITATION?!", "RUBBISH!"
+    ];
+
+    const GAME_OVER_JOKES = [
+      "\"Your academic career has been erased.\"",
+      "\"The examiner has left the chat.\"",
+      "\"You survived longer than this student's GPA.\"",
+      "\"Ink happens.\"",
+      "\"Rejected by Reviewer #2 without comment.\"",
+      "\"Please submit a 10-page apology to the Dean.\"",
+      "\"Even extra credit cannot save this paper.\""
+    ];
+
+    /* =====================================================================
+       2. DETERMINISTIC GEOMETRY & ENCLOSURE ALGORITHMS
+       ===================================================================== */
+    class GeometryUtils {
+      /**
+       * Checks if line segment AB intersects line segment CD.
+       * Returns exact intersection point {x, y} or null.
+       */
+      static getSegmentIntersection(A, B, C, D) {
+        const s1_x = B.x - A.x;
+        const s1_y = B.y - A.y;
+        const s2_x = D.x - C.x;
+        const s2_y = D.y - C.y;
+
+        const denom = (-s2_x * s1_y + s1_x * s2_y);
+        if (Math.abs(denom) < 1e-7) return null; // Collinear or parallel
+
+        const s = (-s1_y * (A.x - C.x) + s1_x * (A.y - C.y)) / denom;
+        const t = ( s2_x * (A.y - C.y) - s2_y * (A.x - C.x)) / denom;
+
+        if (s >= 0 && s <= 1 && t >= 0 && t <= 1) {
+          return {
+            x: A.x + (t * s1_x),
+            y: A.y + (t * s1_y)
+          };
+        }
+        return null;
+      }
+
+      /**
+       * Squared distance from point P to segment AB, also returning closest point.
+       */
+      static pointToSegmentDistSq(P, A, B) {
+        const vx = B.x - A.x;
+        const vy = B.y - A.y;
+        const wx = P.x - A.x;
+        const wy = P.y - A.y;
+
+        const c1 = wx * vx + wy * vy;
+        if (c1 <= 0) {
+          const dx = P.x - A.x, dy = P.y - A.y;
+          return { distSq: dx * dx + dy * dy, x: A.x, y: A.y };
+        }
+        const c2 = vx * vx + vy * vy;
+        if (c2 <= c1) {
+          const dx = P.x - B.x, dy = P.y - B.y;
+          return { distSq: dx * dx + dy * dy, x: B.x, y: B.y };
+        }
+        const b = c1 / c2;
+        const projX = A.x + b * vx;
+        const projY = A.y + b * vy;
+        const dx = P.x - projX, dy = P.y - projY;
+        return { distSq: dx * dx + dy * dy, x: projX, y: projY };
+      }
+
+      /**
+       * Mathematically robust Winding Number + Ray-Casting Point-in-Polygon check.
+       * Accounts for self-intersecting or concave loops drawn by the player.
+       */
+      static isPointInPolygon(pt, polygon) {
+        if (!polygon || polygon.length < 3) return false;
+
+        let windingNumber = 0;
+        let rayInside = false;
+        const n = polygon.length;
+
+        for (let i = 0, j = n - 1; i < n; j = i++) {
+          const xi = polygon[i].x, yi = polygon[i].y;
+          const xj = polygon[j].x, yj = polygon[j].y;
+
+          // Standard even-odd ray-cast
+          const intersect = ((yi > pt.y) !== (yj > pt.y)) &&
+            (pt.x < (xj - xi) * (pt.y - yi) / ((yj - yi) || 1e-7) + xi);
+          if (intersect) rayInside = !rayInside;
+
+          // Non-zero winding number calculation
+          if (yj <= pt.y) {
+            if (yi > pt.y) {
+              if (((xi - xj) * (pt.y - yj) - (pt.x - xj) * (yi - yj)) > 0) {
+                windingNumber++;
+              }
+            }
+          } else {
+            if (yi <= pt.y) {
+              if (((xi - xj) * (pt.y - yj) - (pt.x - xj) * (yi - yj)) < 0) {
+                windingNumber--;
+              }
+            }
+          }
+        }
+
+        return windingNumber !== 0 || rayInside;
+      }
+
+      /**
+       * Checks if a target answer (center + sample points around its label) is enclosed by polygon.
+       */
+      static isAnswerEnclosed(answer, polygon) {
+        if (!polygon || polygon.length < 4) return false;
+
+        // Quick bounding box rejection
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        for (let i = 0; i < polygon.length; i++) {
+          const p = polygon[i];
+          if (p.x < minX) minX = p.x;
+          if (p.y < minY) minY = p.y;
+          if (p.x > maxX) maxX = p.x;
+          if (p.y > maxY) maxY = p.y;
+        }
+
+        if (answer.x < minX - 12 || answer.x > maxX + 12 || answer.y < minY - 12 || answer.y > maxY + 12) {
+          return false;
+        }
+
+        // Check center point first
+        if (this.isPointInPolygon({ x: answer.x, y: answer.y }, polygon)) {
+          return true;
+        }
+
+        // Also check 4 cardinal sample points within the answer's tight hitbox in case player clipped slightly through the edge of the note
+        const offsets = [
+          { x: answer.x - 16, y: answer.y },
+          { x: answer.x + 16, y: answer.y },
+          { x: answer.x, y: answer.y - 10 },
+          { x: answer.x, y: answer.y + 10 }
+        ];
+        let insideCount = 0;
+        for (let k = 0; k < offsets.length; k++) {
+          if (this.isPointInPolygon(offsets[k], polygon)) insideCount++;
+        }
+        return insideCount >= 2;
+      }
+    }
+
+    /* =====================================================================
+       3. PROCEDURAL WEB AUDIO API SOUND ENGINE
+       ===================================================================== */
+    class SoundEngine {
+      constructor() {
+        this.ctx = null;
+        this.enabled = true;
+        this.volume = 0.5;
+        this.initialized = false;
+      }
+
+      init() {
+        if (this.initialized) return;
+        try {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (AudioCtx) {
+            this.ctx = new AudioCtx();
+            this.initialized = true;
+          }
+        } catch (e) {
+          // Graceful fallback if audio context blocked
+        }
+      }
+
+      resume() {
+        if (!this.initialized) this.init();
+        if (this.ctx && this.ctx.state === "suspended") {
+          this.ctx.resume().catch(() => {});
+        }
+      }
+
+      getGain(multiplier = 1.0) {
+        if (!this.enabled || !this.ctx) return null;
+        const g = this.ctx.createGain();
+        g.gain.value = Math.max(0.0001, this.volume * multiplier);
+        g.connect(this.ctx.destination);
+        return g;
+      }
+
+      playClick() {
+        if (!this.enabled) return;
+        this.resume();
+        if (!this.ctx) return;
+
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.getGain(0.18);
+        if (!gain) return;
+
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(520, now);
+        osc.frequency.exponentialRampToValueAtTime(180, now + 0.045);
+        gain.gain.setValueAtTime(this.volume * 0.18, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.045);
+
+        osc.connect(gain);
+        osc.start(now);
+        osc.stop(now + 0.05);
+      }
+
+      playGradeSuccess(combo = 1, multiCount = 1) {
+        if (!this.enabled) return;
+        this.resume();
+        if (!this.ctx) return;
+
+        const now = this.ctx.currentTime;
+
+        // 1. Crisp Marker Squeak Swoop
+        const squeak = this.ctx.createOscillator();
+        const squeakGain = this.getGain(0.22);
+        if (squeakGain) {
+          squeak.type = "sine";
+          const baseFreq = Math.min(980, 440 + combo * 45);
+          squeak.frequency.setValueAtTime(baseFreq, now);
+          squeak.frequency.exponentialRampToValueAtTime(baseFreq * 1.65, now + 0.11);
+          squeakGain.gain.setValueAtTime(this.volume * 0.22, now);
+          squeakGain.gain.exponentialRampToValueAtTime(0.001, now + 0.13);
+          squeak.connect(squeakGain);
+          squeak.start(now);
+          squeak.stop(now + 0.14);
+        }
+
+        // 2. Heavy Rubber Stamp Thud
+        const thud = this.ctx.createOscillator();
+        const thudGain = this.getGain(0.38);
+        if (thudGain) {
+          thud.type = "triangle";
+          thud.frequency.setValueAtTime(145, now + 0.05);
+          thud.frequency.exponentialRampToValueAtTime(42, now + 0.22);
+          thudGain.gain.setValueAtTime(this.volume * 0.38, now + 0.05);
+          thudGain.gain.exponentialRampToValueAtTime(0.001, now + 0.24);
+          thud.connect(thudGain);
+          thud.start(now + 0.05);
+          thud.stop(now + 0.25);
+        }
+
+        // 3. Satisfying Combo Arpeggio Chime
+        const notes = [523.25, 659.25, 783.99, 1046.5];
+        const count = Math.min(4, 2 + Math.floor(combo / 2) + (multiCount > 1 ? 1 : 0));
+        for (let i = 0; i < count; i++) {
+          const chime = this.ctx.createOscillator();
+          const cGain = this.getGain(0.16);
+          if (!cGain) continue;
+          const start = now + 0.06 + i * 0.055;
+          chime.type = "triangle";
+          chime.frequency.setValueAtTime(notes[i] * (1 + Math.min(0.5, (combo - 1) * 0.05)), start);
+          cGain.gain.setValueAtTime(this.volume * 0.16, start);
+          cGain.gain.exponentialRampToValueAtTime(0.001, start + 0.18);
+          chime.connect(cGain);
+          chime.start(start);
+          chime.stop(start + 0.19);
+        }
+      }
+
+      playBoostBurst() {
+        if (!this.enabled) return;
+        this.resume();
+        if (!this.ctx) return;
+
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.getGain(0.12);
+        if (!gain) return;
+
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(130, now);
+        osc.frequency.exponentialRampToValueAtTime(75, now + 0.12);
+        gain.gain.setValueAtTime(this.volume * 0.12, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.13);
+
+        osc.connect(gain);
+        osc.start(now);
+        osc.stop(now + 0.14);
+      }
+
+      playWhiteOutSquelch() {
+        if (!this.enabled) return;
+        this.resume();
+        if (!this.ctx) return;
+
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.getGain(0.25);
+        if (!gain) return;
+
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(380, now);
+        osc.frequency.linearRampToValueAtTime(170, now + 0.12);
+        osc.frequency.linearRampToValueAtTime(290, now + 0.25);
+        gain.gain.setValueAtTime(this.volume * 0.25, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.27);
+
+        osc.connect(gain);
+        osc.start(now);
+        osc.stop(now + 0.28);
+      }
+
+      playCoffeeWarning() {
+        if (!this.enabled) return;
+        this.resume();
+        if (!this.ctx) return;
+
+        const now = this.ctx.currentTime;
+        for (let i = 0; i < 3; i++) {
+          const osc = this.ctx.createOscillator();
+          const gain = this.getGain(0.24);
+          if (!gain) continue;
+          const t = now + i * 0.24;
+          osc.type = "sawtooth";
+          osc.frequency.setValueAtTime(220, t);
+          osc.frequency.setValueAtTime(277.18, t + 0.1);
+          gain.gain.setValueAtTime(this.volume * 0.22, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+          osc.connect(gain);
+          osc.start(t);
+          osc.stop(t + 0.21);
+        }
+      }
+
+      playCrashSplatter() {
+        if (!this.enabled) return;
+        this.resume();
+        if (!this.ctx) return;
+
+        const now = this.ctx.currentTime;
+
+        // Low impact boom
+        const osc = this.ctx.createOscillator();
+        const gain = this.getGain(0.45);
+        if (gain) {
+          osc.type = "sawtooth";
+          osc.frequency.setValueAtTime(135, now);
+          osc.frequency.exponentialRampToValueAtTime(28, now + 0.42);
+          gain.gain.setValueAtTime(this.volume * 0.45, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.44);
+          osc.connect(gain);
+          osc.start(now);
+          osc.stop(now + 0.45);
+        }
+
+        // White-noise ink splatter burst
+        const bufferSize = this.ctx.sampleRate * 0.28;
+        const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+        const output = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          output[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.35));
+        }
+        const whiteNoise = this.ctx.createBufferSource();
+        whiteNoise.buffer = noiseBuffer;
+
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = "bandpass";
+        filter.frequency.value = 900;
+
+        const nGain = this.getGain(0.32);
+        if (nGain) {
+          whiteNoise.connect(filter);
+          filter.connect(nGain);
+          whiteNoise.start(now);
+        }
+      }
+    }
+
+    /* =====================================================================
+       4. PROCEDURAL NOTEBOOK PAPER & PERMANENT MARKS RENDERER
+       ===================================================================== */
+    class PaperEnvironment {
+      constructor() {
+        // Offscreen procedural paper grain tile for 60fps performance
+        this.grainTile = document.createElement("canvas");
+        this.grainTile.width = 256;
+        this.grainTile.height = 256;
+        this.generateGrainTexture();
+
+        // Permanent background layer for graded stamps, dried ink & coffee ring stains
+        this.permanentMarks = [];
+        this.maxPermanentMarks = 45;
+      }
+
+      generateGrainTexture() {
+        const ctx = this.grainTile.getContext("2d");
+        ctx.fillStyle = "#fdfaf2";
+        ctx.fillRect(0, 0, 256, 256);
+
+        // Subtle organic paper speckles and fibers
+        for (let i = 0; i < 900; i++) {
+          const x = Math.random() * 256;
+          const y = Math.random() * 256;
+          const alpha = Math.random() * 0.035;
+          ctx.fillStyle = Math.random() > 0.5 ? `rgba(160, 140, 115, ${alpha})` : `rgba(255, 255, 255, ${alpha * 1.2})`;
+          ctx.fillRect(x, y, 1.5, 1.5);
+        }
+
+        // Delicate tiny cellulose fibers
+        ctx.strokeStyle = "rgba(175, 155, 130, 0.045)";
+        ctx.lineWidth = 0.7;
+        for (let i = 0; i < 65; i++) {
+          const x = Math.random() * 256;
+          const y = Math.random() * 256;
+          const len = 4 + Math.random() * 10;
+          const ang = Math.random() * Math.PI * 2;
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+          ctx.lineTo(x + Math.cos(ang) * len, y + Math.sin(ang) * len);
+          ctx.stroke();
+        }
+      }
+
+      resetMarks() {
+        this.permanentMarks = [];
+      }
+
+      addGradedMemory(answer, stampText) {
+        this.permanentMarks.push({
+          type: "GRADED_ANSWER",
+          x: answer.x,
+          y: answer.y,
+          text: answer.text,
+          stamp: stampText,
+          angle: answer.angle,
+          stampAngle: (Math.random() * 0.36) - 0.22,
+          rx: answer.boxW * 0.58,
+          ry: answer.boxH * 0.72,
+          alpha: 0.85,
+          scaleAnim: 1.85 // Starts enlarged for snappy stamp slam animation
+        });
+        if (this.permanentMarks.length > this.maxPermanentMarks) {
+          this.permanentMarks.shift();
+        }
+      }
+
+      addCoffeeStainRing(x, y, radius) {
+        this.permanentMarks.push({
+          type: "COFFEE_RING",
+          x,
+          y,
+          radius,
+          alpha: 0.22
+        });
+        if (this.permanentMarks.length > this.maxPermanentMarks) {
+          this.permanentMarks.shift();
+        }
+      }
+
+      addSplatterDrop(x, y, radius, color = "rgba(195, 20, 32, 0.55)") {
+        this.permanentMarks.push({
+          type: "INK_DROP",
+          x,
+          y,
+          radius,
+          color,
+          alpha: 0.75
+        });
+        if (this.permanentMarks.length > this.maxPermanentMarks) {
+          this.permanentMarks.shift();
+        }
+      }
+
+      update(dt) {
+        for (let i = 0; i < this.permanentMarks.length; i++) {
+          const m = this.permanentMarks[i];
+          if (m.scaleAnim && m.scaleAnim > 1) {
+            m.scaleAnim = Math.max(1, m.scaleAnim - dt * 6.5);
+          }
+          // Very gently fade oldest marks so paper stays readable
+          if (i < this.permanentMarks.length - 18) {
+            m.alpha = Math.max(0.16, m.alpha - dt * 0.015);
+          }
+        }
+      }
+
+      render(ctx, width, height, parallaxX, parallaxY) {
+        // 1. Base Paper Grain Pattern
+        const pattern = ctx.createPattern(this.grainTile, "repeat");
+        ctx.save();
+        ctx.fillStyle = pattern || "#fdfaf2";
+        ctx.translate(-parallaxX * 0.25, -parallaxY * 0.25);
+        ctx.fillRect(parallaxX * 0.25, parallaxY * 0.25, width, height);
+        ctx.restore();
+
+        // 2. Horizontal Pale-Blue Ruling Lines
+        const lineSpacing = 32;
+        const offsetY = (-parallaxY * 0.35) % lineSpacing;
+        ctx.strokeStyle = "#c8e0f4";
+        ctx.lineWidth = 1.15;
+        ctx.beginPath();
+        for (let y = offsetY + 56; y < height; y += lineSpacing) {
+          ctx.moveTo(0, y);
+          ctx.lineTo(width, y);
+        }
+        ctx.stroke();
+
+        // 3. Double Vertical Red Margin Line on Left
+        const marginX = Math.max(54, Math.min(96, width * 0.075)) - parallaxX * 0.2;
+        ctx.strokeStyle = "#eba4a8";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(marginX, 0);
+        ctx.lineTo(marginX, height);
+        ctx.moveTo(marginX + 5, 0);
+        ctx.lineTo(marginX + 5, height);
+        ctx.stroke();
+
+        // 4. Three-Ring Binder Holes along Left Margin
+        const holeX = marginX * 0.46;
+        const holePositions = [height * 0.16, height * 0.5, height * 0.84];
+        for (let i = 0; i < holePositions.length; i++) {
+          const hy = holePositions[i] - parallaxY * 0.15;
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(holeX, hy, 13, 0, Math.PI * 2);
+          ctx.fillStyle = "#292524";
+          ctx.fill();
+          ctx.lineWidth = 2;
+          ctx.strokeStyle = "#d6cfc2";
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        // 5. Render Permanent Graded Answers, Coffee Rings & Ink Drops
+        for (let i = 0; i < this.permanentMarks.length; i++) {
+          const m = this.permanentMarks[i];
+          ctx.save();
+          ctx.globalAlpha = m.alpha;
+
+          if (m.type === "COFFEE_RING") {
+            ctx.strokeStyle = "#78350f";
+            ctx.lineWidth = 3.5;
+            ctx.fillStyle = "rgba(146, 64, 14, 0.08)";
+            ctx.beginPath();
+            ctx.arc(m.x, m.y, m.radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+          } else if (m.type === "INK_DROP") {
+            ctx.fillStyle = m.color;
+            ctx.beginPath();
+            ctx.arc(m.x, m.y, m.radius, 0, Math.PI * 2);
+            ctx.fill();
+          } else if (m.type === "GRADED_ANSWER") {
+            ctx.translate(m.x, m.y);
+            // Crossed-out student text
+            ctx.save();
+            ctx.rotate(m.angle);
+            ctx.font = "600 16px 'Architects Daughter', cursive";
+            ctx.fillStyle = "#64748b";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(m.text, 0, 0);
+
+            // Red strike-through
+            ctx.strokeStyle = "#d41924";
+            ctx.lineWidth = 2.4;
+            ctx.beginPath();
+            ctx.moveTo(-m.rx * 0.85, -2);
+            ctx.lineTo(m.rx * 0.85, 3);
+            ctx.stroke();
+            ctx.restore();
+
+            // Hand-drawn Red Grading Circle
+            const s = m.scaleAnim || 1;
+            ctx.save();
+            ctx.scale(s, s);
+            ctx.strokeStyle = "#d41924";
+            ctx.lineWidth = 3.2;
+            ctx.beginPath();
+            ctx.ellipse(0, 0, m.rx, m.ry, -0.08, 0, Math.PI * 2);
+            ctx.stroke();
+            // Second overlapping loop stroke for authentic hand-graded look
+            ctx.lineWidth = 1.8;
+            ctx.beginPath();
+            ctx.ellipse(2, -1, m.rx * 0.96, m.ry * 1.04, 0.05, 0.2, Math.PI * 1.85);
+            ctx.stroke();
+
+            // Red Rubber Stamp Box
+            ctx.rotate(m.stampAngle);
+            ctx.translate(0, -m.ry - 8);
+            ctx.fillStyle = "rgba(253, 250, 242, 0.92)";
+            ctx.strokeStyle = "#b8121d";
+            ctx.lineWidth = 2.5;
+            const sw = 88, sh = 24;
+            ctx.beginPath();
+            ctx.roundRect(-sw / 2, -sh / 2, sw, sh, 4);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.font = "15px 'Black Ops One', sans-serif";
+            ctx.fillStyle = "#b8121d";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(m.stamp, 0, 1);
+            ctx.restore();
+          }
+
+          ctx.restore();
+        }
+
+        // 6. Subtle Ambient Paper Edge Vignette
+        const grad = ctx.createRadialGradient(
+          width * 0.5, height * 0.5, Math.min(width, height) * 0.38,
+          width * 0.5, height * 0.5, Math.max(width, height) * 0.75
+        );
+        grad.addColorStop(0, "rgba(0,0,0,0)");
+        grad.addColorStop(1, "rgba(87, 72, 53, 0.14)");
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, width, height);
+      }
+    }
+
+    /* =====================================================================
+       5. POOLED PARTICLE & FLOATING TEXT SYSTEM
+       ===================================================================== */
+    class ParticleSystem {
+      constructor() {
+        this.particles = [];
+        this.popups = [];
+        this.maxParticles = 320;
+      }
+
+      clear() {
+        this.particles.length = 0;
+        this.popups.length = 0;
+      }
+
+      spawnParticle(x, y, vx, vy, size, color, life, gravity = 0, drag = 0.96) {
+        if (this.particles.length >= this.maxParticles) {
+          this.particles.shift();
+        }
+        this.particles.push({
+          x, y, vx, vy, size, color, life, maxLife: life, gravity, drag
+        });
+      }
+
+      emitInkBurst(x, y, count = 26, speed = 210) {
+        const colors = ["#d41924", "#990f17", "#ff4754", "#7a0910"];
+        for (let i = 0; i < count; i++) {
+          const ang = Math.random() * Math.PI * 2;
+          const spd = (0.25 + Math.random() * 0.85) * speed;
+          const size = 2.5 + Math.random() * 5.5;
+          const color = colors[Math.floor(Math.random() * colors.length)];
+          this.spawnParticle(
+            x, y,
+            Math.cos(ang) * spd,
+            Math.sin(ang) * spd,
+            size,
+            color,
+            0.35 + Math.random() * 0.45,
+            0,
+            0.92
+          );
+        }
+      }
+
+      emitRocketExhaust(x, y, angle, isBoosting) {
+        const spread = (Math.random() - 0.5) * 0.55;
+        const speed = (isBoosting ? 185 : 95) * (0.7 + Math.random() * 0.6);
+        const vx = Math.cos(angle + Math.PI + spread) * speed;
+        const vy = Math.sin(angle + Math.PI + spread) * speed;
+        const colors = isBoosting
+          ? ["#fef08a", "#fb923c", "#ef4444", "#ffffff"]
+          : ["#fca5a5", "#fb923c", "#ef4444"];
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        this.spawnParticle(
+          x, y, vx, vy,
+          isBoosting ? 3.5 + Math.random() * 3.5 : 2 + Math.random() * 2.5,
+          color,
+          isBoosting ? 0.24 : 0.16,
+          0,
+          0.9
+        );
+      }
+
+      emitEraserCrumbs(x, y) {
+        if (Math.random() > 0.35) return;
+        const colors = ["#f472b6", "#fbcfe8", "#db2777"];
+        const ang = Math.random() * Math.PI * 2;
+        this.spawnParticle(
+          x + (Math.random() - 0.5) * 28,
+          y + (Math.random() - 0.5) * 16,
+          Math.cos(ang) * 18,
+          Math.sin(ang) * 18,
+          2 + Math.random() * 2.4,
+          colors[Math.floor(Math.random() * colors.length)],
+          0.9 + Math.random() * 0.6,
+          0,
+          0.88
+        );
+      }
+
+      spawnPopup(x, y, title, subtitle = "", color = "#d41924", scale = 1.0) {
+        this.popups.push({
+          x,
+          y,
+          vy: -48,
+          title,
+          subtitle,
+          color,
+          scale,
+          life: 1.15,
+          maxLife: 1.15
+        });
+      }
+
+      update(dt) {
+        for (let i = this.particles.length - 1; i >= 0; i--) {
+          const p = this.particles[i];
+          p.life -= dt;
+          if (p.life <= 0) {
+            this.particles.splice(i, 1);
+            continue;
+          }
+          p.vx *= Math.pow(p.drag, dt * 60);
+          p.vy *= Math.pow(p.drag, dt * 60);
+          p.vy += p.gravity * dt;
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+        }
+
+        for (let i = this.popups.length - 1; i >= 0; i--) {
+          const pop = this.popups[i];
+          pop.life -= dt;
+          if (pop.life <= 0) {
+            this.popups.splice(i, 1);
+            continue;
+          }
+          pop.y += pop.vy * dt;
+          pop.vy *= 0.95;
+        }
+      }
+
+      render(ctx) {
+        // Render Particles
+        for (let i = 0; i < this.particles.length; i++) {
+          const p = this.particles[i];
+          const ratio = Math.max(0, p.life / p.maxLife);
+          ctx.save();
+          ctx.globalAlpha = ratio;
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size * (0.4 + 0.6 * ratio), 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+
+        // Render Floating Score & Grade Popups
+        for (let i = 0; i < this.popups.length; i++) {
+          const pop = this.popups[i];
+          const ratio = Math.max(0, pop.life / pop.maxLife);
+          ctx.save();
+          ctx.globalAlpha = Math.min(1, ratio * 1.4);
+          ctx.translate(pop.x, pop.y);
+          const s = pop.scale * (0.85 + 0.2 * Math.sin((1 - ratio) * Math.PI));
+          ctx.scale(s, s);
+
+          ctx.font = "19px 'Black Ops One', sans-serif";
+          ctx.textAlign = "center";
+          ctx.lineWidth = 4;
+          ctx.strokeStyle = "#fdfaf2";
+          ctx.strokeText(pop.title, 0, 0);
+          ctx.fillStyle = pop.color;
+          ctx.fillText(pop.title, 0, 0);
+
+          if (pop.subtitle) {
+            ctx.font = "800 12px 'Inter', sans-serif";
+            ctx.strokeText(pop.subtitle, 0, 17);
+            ctx.fillStyle = "#1c1917";
+            ctx.fillText(pop.subtitle, 0, 17);
+          }
+          ctx.restore();
+        }
+      }
+    }
+
+    /* =====================================================================
+       6. SIGNATURE INK TRAIL & LOOP-CLOSURE MANAGER
+       ===================================================================== */
+    class InkTrailManager {
+      constructor() {
+        this.points = []; // Ordered vertices {x, y}
+        this.dissolvingLoops = []; // Cleared loops animating fade-out
+        this.maxVertices = CONFIG.TRAIL_PRESETS.STANDARD;
+        this.snapCandidate = null; // Live visual indicator when closing a loop will grade an answer
+        this.graceTimer = 0; // Brief post-grade immunity at splice point
+      }
+
+      reset() {
+        this.points = [];
+        this.dissolvingLoops = [];
+        this.snapCandidate = null;
+        this.graceTimer = 0;
+      }
+
+      addPoint(x, y) {
+        if (this.points.length === 0) {
+          this.points.push({ x, y });
+          return false;
+        }
+        const last = this.points[this.points.length - 1];
+        const dx = x - last.x;
+        const dy = y - last.y;
+        if (dx * dx + dy * dy >= CONFIG.TRAIL_SAMPLE_DIST * CONFIG.TRAIL_SAMPLE_DIST) {
+          this.points.push({ x, y });
+          if (this.points.length > this.maxVertices) {
+            this.points.shift();
+          }
+          return true;
+        }
+        return false;
+      }
+
+      /**
+       * Evaluates both:
+       * 1) Proximity Loop Closure around eligible student answers (so players don't die trying to close a loop)
+       * 2) Exact Segment-Segment Intersection (Grades if answers enclosed; triggers Self-Collision if empty!)
+       */
+      evaluateTrailInteractions(penTip, prevTip, activeAnswers) {
+        this.snapCandidate = null;
+        const n = this.points.length;
+        if (n < CONFIG.MIN_LOOP_SEGMENTS) {
+          return { type: "NONE" };
+        }
+
+        // First: Check if the pen tip is close to an earlier segment AND forms a loop around >=1 answer
+        const maxSearchIdx = n - CONFIG.MIN_LOOP_SEGMENTS;
+        const snapRadSq = CONFIG.LOOP_SNAP_RADIUS * CONFIG.LOOP_SNAP_RADIUS;
+        const hintRadSq = (CONFIG.LOOP_SNAP_RADIUS * 2.3) ** 2;
+
+        for (let i = maxSearchIdx; i >= 0; i--) {
+          const pA = this.points[i];
+          const pB = this.points[i + 1];
+          const proj = GeometryUtils.pointToSegmentDistSq(penTip, pA, pB);
+
+          if (proj.distSq <= hintRadSq) {
+            // Build candidate polygon [proj, P_{i+1} ... P_{n-1}, penTip]
+            const polygon = [{ x: proj.x, y: proj.y }];
+            for (let k = i + 1; k < n; k++) {
+              polygon.push(this.points[k]);
+            }
+            polygon.push({ x: penTip.x, y: penTip.y });
+
+            const enclosedAnswers = [];
+            for (let a = 0; a < activeAnswers.length; a++) {
+              const ans = activeAnswers[a];
+              if (!ans.graded && GeometryUtils.isAnswerEnclosed(ans, polygon)) {
+                enclosedAnswers.push(ans);
+              }
+            }
+
+            if (enclosedAnswers.length > 0) {
+              // If within snap closure radius, immediately complete the grade!
+              if (proj.distSq <= snapRadSq) {
+                this.dissolveLoopFromIndex(i, proj);
+                return {
+                  type: "GRADE_LOOP",
+                  enclosedAnswers,
+                  loopPolygon: polygon
+                };
+              } else if (!this.snapCandidate) {
+                // Store visual guidance ring showing where to close the loop
+                this.snapCandidate = { x: proj.x, y: proj.y, count: enclosedAnswers.length };
+              }
+            }
+          }
+        }
+
+        // Second: Check exact segment-segment intersection between (prevTip -> penTip) and earlier trail segments
+        const safeCheckLimit = n - CONFIG.SELF_COLLISION_SKIP;
+        for (let i = safeCheckLimit - 1; i >= 0; i--) {
+          const segA = this.points[i];
+          const segB = this.points[i + 1];
+          const hit = GeometryUtils.getSegmentIntersection(segA, segB, prevTip, penTip);
+
+          if (hit) {
+            // Construct exact closed polygon
+            const polygon = [{ x: hit.x, y: hit.y }];
+            for (let k = i + 1; k < n; k++) {
+              polygon.push(this.points[k]);
+            }
+            polygon.push({ x: hit.x, y: hit.y });
+
+            const enclosedAnswers = [];
+            for (let a = 0; a < activeAnswers.length; a++) {
+              const ans = activeAnswers[a];
+              if (!ans.graded && GeometryUtils.isAnswerEnclosed(ans, polygon)) {
+                enclosedAnswers.push(ans);
+              }
+            }
+
+            if (enclosedAnswers.length > 0) {
+              // Valid Circle & Grade! Clear the enclosed loop without killing the player
+              this.dissolveLoopFromIndex(i, hit);
+              return {
+                type: "GRADE_LOOP",
+                enclosedAnswers,
+                loopPolygon: polygon
+              };
+            } else if (this.graceTimer <= 0) {
+              // Crossed own trail with ZERO answers inside -> Lethal Self-Collision!
+              return {
+                type: "SELF_COLLISION",
+                hitPoint: hit
+              };
+            }
+          }
+        }
+
+        return { type: "NONE" };
+      }
+
+      /**
+       * Removes only the enclosed loop section (from index i+1 to end) while preserving
+       * earlier unrelated trail segments (0..i) and animating the cleared loop dissolving.
+       */
+      dissolveLoopFromIndex(splitIndex, closurePoint) {
+        const removedVerts = this.points.splice(splitIndex + 1);
+        removedVerts.unshift({ x: closurePoint.x, y: closurePoint.y });
+        removedVerts.push({ x: closurePoint.x, y: closurePoint.y });
+
+        this.dissolvingLoops.push({
+          vertices: removedVerts,
+          alpha: 1.0,
+          scale: 1.0
+        });
+
+        // Anchor the remaining trail cleanly at the closure point
+        this.points.push({ x: closurePoint.x, y: closurePoint.y });
+        this.graceTimer = 0.28;
+      }
+
+      /**
+       * Allows patrolling Giant Erasers to erase trail vertices they slide directly over.
+       */
+      eraseWithinRadius(cx, cy, rx, ry) {
+        for (let i = this.points.length - 1; i >= 0; i--) {
+          const p = this.points[i];
+          const dx = Math.abs(p.x - cx);
+          const dy = Math.abs(p.y - cy);
+          if (dx < rx && dy < ry) {
+            // Truncate older trail up to the erased point so we don't draw a teleporting line across the eraser
+            this.points.splice(0, i + 1);
+            return true;
+          }
+        }
+        return false;
+      }
+
+      update(dt) {
+        if (this.graceTimer > 0) {
+          this.graceTimer = Math.max(0, this.graceTimer - dt);
+        }
+
+        for (let i = this.dissolvingLoops.length - 1; i >= 0; i--) {
+          const dl = this.dissolvingLoops[i];
+          dl.alpha -= dt * 2.6;
+          dl.scale += dt * 0.08;
+          if (dl.alpha <= 0) {
+            this.dissolvingLoops.splice(i, 1);
+          }
+        }
+      }
+
+      render(ctx, penTip) {
+        // 1. Render Dissolving Cleared Loops (Crimson glow + fill flash)
+        for (let i = 0; i < this.dissolvingLoops.length; i++) {
+          const dl = this.dissolvingLoops[i];
+          if (dl.vertices.length < 3) continue;
+          ctx.save();
+          ctx.globalAlpha = Math.max(0, dl.alpha);
+          ctx.fillStyle = "rgba(212, 25, 36, 0.18)";
+          ctx.strokeStyle = "#ff2a38";
+          ctx.lineWidth = CONFIG.TRAIL_WIDTH * 1.4;
+          ctx.lineCap = "round";
+          ctx.lineJoin = "round";
+
+          ctx.beginPath();
+          ctx.moveTo(dl.vertices[0].x, dl.vertices[0].y);
+          for (let k = 1; k < dl.vertices.length; k++) {
+            ctx.lineTo(dl.vertices[k].x, dl.vertices[k].y);
+          }
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        // 2. Render Active Lethal Ink Trail
+        const n = this.points.length;
+        if (n < 1) return;
+
+        ctx.save();
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+
+        // Subtle outer ink feathering / shadow on paper
+        ctx.strokeStyle = "rgba(140, 12, 20, 0.22)";
+        ctx.lineWidth = CONFIG.TRAIL_WIDTH + 3.5;
+        ctx.beginPath();
+        ctx.moveTo(this.points[0].x, this.points[0].y);
+        for (let i = 1; i < n; i++) {
+          ctx.lineTo(this.points[i].x, this.points[i].y);
+        }
+        ctx.lineTo(penTip.x, penTip.y);
+        ctx.stroke();
+
+        // Main Rich Crimson Ink Body
+        ctx.strokeStyle = "#d41924";
+        ctx.lineWidth = CONFIG.TRAIL_WIDTH;
+        ctx.beginPath();
+        ctx.moveTo(this.points[0].x, this.points[0].y);
+        for (let i = 1; i < n; i++) {
+          ctx.lineTo(this.points[i].x, this.points[i].y);
+        }
+        ctx.lineTo(penTip.x, penTip.y);
+        ctx.stroke();
+
+        // Wet-Ink Glossy Inner Highlight
+        ctx.strokeStyle = "#ff6b75";
+        ctx.lineWidth = 2.0;
+        ctx.beginPath();
+        const startGloss = Math.max(0, n - 85);
+        ctx.moveTo(this.points[startGloss].x - 1, this.points[startGloss].y - 1);
+        for (let i = startGloss + 1; i < n; i++) {
+          ctx.lineTo(this.points[i].x - 1, this.points[i].y - 1);
+        }
+        ctx.lineTo(penTip.x - 1, penTip.y - 1);
+        ctx.stroke();
+
+        // 3. Render Loop-Closure Snap Guidance Indicator if enclosing an answer
+        if (this.snapCandidate) {
+          const sc = this.snapCandidate;
+          ctx.save();
+          ctx.strokeStyle = "#16a34a";
+          ctx.fillStyle = "rgba(22, 163, 74, 0.16)";
+          ctx.lineWidth = 2.5;
+          ctx.setLineDash([5, 4]);
+          ctx.beginPath();
+          ctx.arc(sc.x, sc.y, CONFIG.LOOP_SNAP_RADIUS, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          // Connector line from pen tip to snap closure point
+          ctx.beginPath();
+          ctx.moveTo(penTip.x, penTip.y);
+          ctx.lineTo(sc.x, sc.y);
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        ctx.restore();
+      }
+    }
+
+    /* =====================================================================
+       7. ROCKET-POWERED RED GRADING PEN (PLAYER ENTITY)
+       ===================================================================== */
+    class RocketPen {
+      constructor(x, y) {
+        this.reset(x, y);
+      }
+
+      reset(x, y) {
+        this.x = x;
+        this.y = y;
+        this.prevX = x;
+        this.prevY = y;
+        this.angle = -Math.PI * 0.18; // Slight upward-right initial angle
+        this.speed = CONFIG.BASE_SPEED;
+        this.boostEnergy = 100;
+        this.isBoosting = false;
+        this.whiteOutTimer = 0; // >0 means steering is locked for 1.0s
+        this.turnInput = 0;     // -1 left, +1 right, 0 straight
+        this.visualRoll = 0;    // Subtle banking visual during turns
+      }
+
+      update(dt, survivalTime, bounds, particles, sound) {
+        this.prevX = this.x;
+        this.prevY = this.y;
+
+        // Update White-Out steering lock timer
+        if (this.whiteOutTimer > 0) {
+          this.whiteOutTimer = Math.max(0, this.whiteOutTimer - dt);
+        }
+
+        // Apply Steering (locked if coated in White-Out!)
+        const effectiveTurnInput = this.whiteOutTimer > 0 ? 0 : this.turnInput;
+        const turnSpeed = this.isBoosting ? CONFIG.BOOST_TURN_RATE : CONFIG.TURN_RATE;
+        this.angle += effectiveTurnInput * turnSpeed * dt;
+
+        // Smooth visual roll banking
+        this.visualRoll += (effectiveTurnInput * 0.35 - this.visualRoll) * Math.min(1, dt * 12);
+
+        // Speed & Rocket Boost Management
+        const baseProgressionSpeed = Math.min(
+          CONFIG.MAX_SPEED,
+          CONFIG.BASE_SPEED + survivalTime * CONFIG.SPEED_RAMP_PER_SEC
+        );
+
+        if (this.isBoosting && this.boostEnergy > 2) {
+          this.speed = baseProgressionSpeed * CONFIG.BOOST_MULTIPLIER;
+          this.boostEnergy = Math.max(0, this.boostEnergy - dt * 42);
+        } else {
+          this.isBoosting = false;
+          this.speed = baseProgressionSpeed;
+          this.boostEnergy = Math.min(100, this.boostEnergy + dt * 20);
+        }
+
+        // Advance Pen Tip Position
+        this.x += Math.cos(this.angle) * this.speed * dt;
+        this.y += Math.sin(this.angle) * this.speed * dt;
+
+        // Softly bounce off the outer notebook sheet margins so player stays on the exam page
+        const margin = 22;
+        let bounced = false;
+        if (this.x < margin) {
+          this.x = margin;
+          this.angle = Math.PI - this.angle;
+          bounced = true;
+        } else if (this.x > bounds.width - margin) {
+          this.x = bounds.width - margin;
+          this.angle = Math.PI - this.angle;
+          bounced = true;
+        }
+        if (this.y < margin) {
+          this.y = margin;
+          this.angle = -this.angle;
+          bounced = true;
+        } else if (this.y > bounds.height - margin) {
+          this.y = bounds.height - margin;
+          this.angle = -this.angle;
+          bounced = true;
+        }
+
+        if (bounced) {
+          particles.emitInkBurst(this.x, this.y, 10, 120);
+          sound.playClick();
+        }
+
+        // Emit Rocket Thruster Exhaust Particles from the rear of the pen barrel
+        const penLength = 54;
+        const tailX = this.x - Math.cos(this.angle) * penLength;
+        const tailY = this.y - Math.sin(this.angle) * penLength;
+        particles.emitRocketExhaust(tailX, tailY, this.angle, this.isBoosting);
+
+        // Emit fine crimson ink micro-sparks on sharp turns
+        if (Math.abs(effectiveTurnInput) > 0.5 && Math.random() < 0.45) {
+          particles.spawnParticle(
+            this.x, this.y,
+            (Math.random() - 0.5) * 60,
+            (Math.random() - 0.5) * 60,
+            2.2,
+            "#d41924",
+            0.22
+          );
+        }
+      }
+
+      render(ctx, time) {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.angle);
+
+        // Note: (0,0) is the exact ink-drawing ballpoint nib!
+        // The pen body extends backward along the negative X axis [-56 .. 0]
+
+        // 1. Soft Drop Shadow on Notebook Paper
+        ctx.save();
+        ctx.translate(-26, 9);
+        ctx.fillStyle = "rgba(28, 25, 23, 0.20)";
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 30, 6.5, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        // 2. Dynamic Rocket Exhaust Plume at Rear (-54, 0)
+        const flameLen = (this.isBoosting ? 28 : 15) + Math.sin(time * 45) * 4;
+        const flameWidth = this.isBoosting ? 8.5 : 5.2;
+
+        ctx.save();
+        ctx.translate(-54, 0);
+        // Outer orange/red flame cone
+        const fGrad = ctx.createLinearGradient(0, 0, -flameLen, 0);
+        fGrad.addColorStop(0, "#fffbeb");
+        fGrad.addColorStop(0.35, "#fb923c");
+        fGrad.addColorStop(0.8, "#dc2626");
+        fGrad.addColorStop(1, "rgba(220, 38, 38, 0)");
+        ctx.fillStyle = fGrad;
+        ctx.beginPath();
+        ctx.moveTo(0, -flameWidth * 0.7);
+        ctx.quadraticCurveTo(-flameLen * 0.6, -flameWidth, -flameLen, 0);
+        ctx.quadraticCurveTo(-flameLen * 0.6, flameWidth, 0, flameWidth * 0.7);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+
+        // 3. Rocket Thruster Nozzle at Rear (-54 to -47)
+        ctx.fillStyle = "#334155";
+        ctx.strokeStyle = "#0f172a";
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.moveTo(-54, -5.5);
+        ctx.lineTo(-47, -4.2);
+        ctx.lineTo(-47, 4.2);
+        ctx.lineTo(-54, 5.5);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // 4. Polished Crimson Pen Barrel (-47 to -16)
+        const barrelGrad = ctx.createLinearGradient(0, -6.5, 0, 6.5);
+        barrelGrad.addColorStop(0, "#f87171");
+        barrelGrad.addColorStop(0.28, "#dc2626");
+        barrelGrad.addColorStop(0.75, "#991b1b");
+        barrelGrad.addColorStop(1, "#450a0a");
+
+        ctx.fillStyle = barrelGrad;
+        ctx.strokeStyle = "#450a0a";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.roundRect(-48, -6.2, 33, 12.4, 3);
+        ctx.fill();
+        ctx.stroke();
+
+        // Silver Metallic Ferrule Ring
+        ctx.fillStyle = "#e2e8f0";
+        ctx.fillRect(-44, -6.2, 3.5, 12.4);
+
+        // Specular Gloss Highlight along Barrel
+        ctx.fillStyle = "rgba(255, 255, 255, 0.45)";
+        ctx.beginPath();
+        ctx.roundRect(-39, -4.3, 21, 2.1, 1);
+        ctx.fill();
+
+        // Pocket Clip on Rear Cap
+        ctx.strokeStyle = "#cbd5e1";
+        ctx.lineWidth = 2.2;
+        ctx.beginPath();
+        ctx.moveTo(-45, -6.5);
+        ctx.lineTo(-45, -9.5);
+        ctx.lineTo(-28, -8.5);
+        ctx.stroke();
+
+        // 5. Textured Dark Ergonomic Grip Collar (-16 to -7)
+        ctx.fillStyle = "#1e293b";
+        ctx.strokeStyle = "#0f172a";
+        ctx.lineWidth = 1.3;
+        ctx.beginPath();
+        ctx.moveTo(-16, -5.8);
+        ctx.lineTo(-7, -3.6);
+        ctx.lineTo(-7, 3.6);
+        ctx.lineTo(-16, 5.8);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Grip ribs
+        ctx.strokeStyle = "#475569";
+        ctx.lineWidth = 1;
+        for (let gx = -14; gx <= -9; gx += 2.5) {
+          ctx.beginPath();
+          ctx.moveTo(gx, -4.2);
+          ctx.lineTo(gx, 4.2);
+          ctx.stroke();
+        }
+
+        // 6. Metallic Cone & Ballpoint Nib (-7 to 0)
+        ctx.fillStyle = this.whiteOutTimer > 0 ? "#ffffff" : "#cbd5e1";
+        ctx.strokeStyle = "#334155";
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(-7, -3.4);
+        ctx.lineTo(0, -1.1);
+        ctx.lineTo(0, 1.1);
+        ctx.lineTo(-7, 3.4);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Glowing Crimson Ballpoint Tip (or Chalk White when coated in White-Out!)
+        ctx.fillStyle = this.whiteOutTimer > 0 ? "#f8fafc" : "#d41924";
+        ctx.beginPath();
+        ctx.arc(0, 0, this.whiteOutTimer > 0 ? 3.8 : 2.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+
+        // 7. If White-Out steering lock is active, draw floating countdown pill above pen
+        if (this.whiteOutTimer > 0) {
+          ctx.save();
+          ctx.translate(this.x, this.y - 34);
+          ctx.fillStyle = "#ffffff";
+          ctx.strokeStyle = "#1e293b";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.roundRect(-64, -12, 128, 22, 11);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.font = "800 10px 'Inter', sans-serif";
+          ctx.fillStyle = "#0f172a";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(`WHITE-OUT LOCK ${this.whiteOutTimer.toFixed(1)}s`, 0, -1);
+          ctx.restore();
+        }
+      }
+    }
+
+    /* =====================================================================
+       8. STUDENT ANSWERS & HAZARDS (ERASERS, WHITE-OUT, COFFEE SPILL BOSS)
+       ===================================================================== */
+    class StudentAnswer {
+      constructor(x, y, data) {
+        this.x = x;
+        this.y = y;
+        this.text = data.text;
+        this.doodle = data.doodle;
+        this.angle = (Math.random() - 0.5) * 0.14;
+        this.graded = false;
+        this.spawnScale = 0.01;
+        this.pulsePhase = Math.random() * Math.PI * 2;
+        // Approximate bounding box for enclosure & UI
+        this.boxW = Math.max(125, this.text.length * 7.8 + 24);
+        this.boxH = 42;
+      }
+
+      update(dt) {
+        if (this.spawnScale < 1) {
+          this.spawnScale = Math.min(1, this.spawnScale + dt * 4.5);
+        }
+        this.pulsePhase += dt * 3.2;
+      }
+
+      render(ctx) {
+        if (this.graded) return;
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.scale(this.spawnScale, this.spawnScale);
+        ctx.rotate(this.angle);
+
+        const pulse = 1 + Math.sin(this.pulsePhase) * 0.03;
+
+        // Subtle highlight paper card backing so player can spot ungraded answers immediately
+        ctx.fillStyle = "rgba(254, 249, 195, 0.72)";
+        ctx.strokeStyle = "rgba(217, 119, 6, 0.45)";
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([4, 3]);
+        ctx.beginPath();
+        ctx.roundRect(-this.boxW / 2, -this.boxH / 2, this.boxW, this.boxH, 8);
+        ctx.fill();
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Small Corner Target Prompt Badge ("CIRCLE ME")
+        ctx.save();
+        ctx.scale(pulse, pulse);
+        ctx.fillStyle = "#dc2626";
+        ctx.font = "800 9px 'Inter', sans-serif";
+        ctx.textAlign = "right";
+        ctx.fillText("⭕ CIRCLE TO GRADE", this.boxW / 2 - 6, -this.boxH / 2 - 4);
+        ctx.restore();
+
+        // Student Handwritten Answer in Blue/Graphite Ink
+        ctx.font = "600 16px 'Architects Daughter', cursive";
+        ctx.fillStyle = "#1e3a8a";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(this.text, 0, 2);
+
+        ctx.restore();
+      }
+    }
+
+    class GiantEraser {
+      constructor(x, y, vx, vy) {
+        this.x = x;
+        this.y = y;
+        this.vx = vx;
+        this.vy = vy;
+        this.w = 88;
+        this.h = 42;
+        this.angle = Math.atan2(vy, vx);
+        this.turnTimer = 4.0 + Math.random() * 3.5;
+        this.telegraphing = false;
+        this.nextAngle = this.angle;
+      }
+
+      update(dt, bounds, particles, trail) {
+        this.turnTimer -= dt;
+
+        // Telegraph upcoming direction change 1.2s in advance
+        if (this.turnTimer <= 1.2 && !this.telegraphing) {
+          this.telegraphing = true;
+          const turnDelta = (Math.random() > 0.5 ? 1 : -1) * (Math.PI * 0.35 + Math.random() * 0.45);
+          this.nextAngle = this.angle + turnDelta;
+        }
+
+        if (this.turnTimer <= 0) {
+          const speed = Math.hypot(this.vx, this.vy);
+          this.angle = this.nextAngle;
+          this.vx = Math.cos(this.angle) * speed;
+          this.vy = Math.sin(this.angle) * speed;
+          this.telegraphing = false;
+          this.turnTimer = 4.0 + Math.random() * 3.5;
+        }
+
+        this.x += this.vx * dt;
+        this.y += this.vy * dt;
+
+        // Bounce cleanly off arena walls
+        const padX = this.w * 0.6;
+        const padY = this.h * 0.6;
+        if (this.x < padX) {
+          this.x = padX;
+          this.vx = Math.abs(this.vx);
+          this.angle = Math.atan2(this.vy, this.vx);
+          this.telegraphing = false;
+        } else if (this.x > bounds.width - padX) {
+          this.x = bounds.width - padX;
+          this.vx = -Math.abs(this.vx);
+          this.angle = Math.atan2(this.vy, this.vx);
+          this.telegraphing = false;
+        }
+        if (this.y < padY) {
+          this.y = padY;
+          this.vy = Math.abs(this.vy);
+          this.angle = Math.atan2(this.vy, this.vx);
+          this.telegraphing = false;
+        } else if (this.y > bounds.height - padY) {
+          this.y = bounds.height - padY;
+          this.vy = -Math.abs(this.vy);
+          this.angle = Math.atan2(this.vy, this.vx);
+          this.telegraphing = false;
+        }
+
+        // Leave faint pink eraser crumbs & erase ink trails under the rubber body
+        particles.emitEraserCrumbs(this.x, this.y);
+        trail.eraseWithinRadius(this.x, this.y, this.w * 0.45, this.h * 0.45);
+      }
+
+      checkCollision(pen) {
+        // Transform pen tip into eraser's local rotated rectangle space
+        const dx = pen.x - this.x;
+        const dy = pen.y - this.y;
+        const cos = Math.cos(-this.angle);
+        const sin = Math.sin(-this.angle);
+        const localX = dx * cos - dy * sin;
+        const localY = dx * sin + dy * cos;
+
+        const halfW = this.w * 0.5 + CONFIG.PEN_HITBOX_RADIUS - 3;
+        const halfH = this.h * 0.5 + CONFIG.PEN_HITBOX_RADIUS - 3;
+        return Math.abs(localX) <= halfW && Math.abs(localY) <= halfH;
+      }
+
+      render(ctx) {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+
+        // Draw Telegraphed Movement Cue / Turn Arrow
+        const cueAngle = this.telegraphing ? this.nextAngle : this.angle;
+        ctx.save();
+        ctx.rotate(cueAngle);
+        ctx.strokeStyle = this.telegraphing ? "#dc2626" : "rgba(219, 39, 119, 0.38)";
+        ctx.lineWidth = this.telegraphing ? 2.5 : 1.8;
+        ctx.setLineDash([5, 4]);
+        ctx.beginPath();
+        ctx.moveTo(this.w * 0.5, 0);
+        ctx.lineTo(this.w * 0.5 + 48, 0);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        // Arrowhead
+        ctx.fillStyle = this.telegraphing ? "#dc2626" : "rgba(219, 39, 119, 0.45)";
+        ctx.beginPath();
+        ctx.moveTo(this.w * 0.5 + 54, 0);
+        ctx.lineTo(this.w * 0.5 + 44, -5);
+        ctx.lineTo(this.w * 0.5 + 44, 5);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+
+        // Rotate into Eraser Body Space
+        ctx.rotate(this.angle);
+
+        // Drop Shadow
+        ctx.fillStyle = "rgba(28, 25, 23, 0.22)";
+        ctx.beginPath();
+        ctx.roundRect(-this.w / 2 + 4, -this.h / 2 + 6, this.w, this.h, 7);
+        ctx.fill();
+
+        // Pink Rubber Body (72%) + Blue Coarse Side (28%)
+        ctx.fillStyle = "#f472b6";
+        ctx.strokeStyle = "#9d174d";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.roundRect(-this.w / 2, -this.h / 2, this.w, this.h, 7);
+        ctx.fill();
+        ctx.stroke();
+
+        // Blue coarse tip
+        ctx.fillStyle = "#60a5fa";
+        ctx.beginPath();
+        ctx.roundRect(this.w * 0.2, -this.h / 2, this.w * 0.3, this.h, [0, 7, 7, 0]);
+        ctx.fill();
+        ctx.stroke();
+
+        // Top Bevel Highlight
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.5)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.roundRect(-this.w / 2 + 4, -this.h / 2 + 4, this.w - 8, this.h - 8, 4);
+        ctx.stroke();
+
+        // Stamped Text on Eraser
+        ctx.font = "800 10px 'Inter', sans-serif";
+        ctx.fillStyle = "#831843";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("PINK ERASER", -8, 0);
+
+        ctx.restore();
+      }
+    }
+
+    class WhiteOutPuddle {
+      constructor(x, y, radius = 34) {
+        this.x = x;
+        this.y = y;
+        this.radius = radius;
+        this.cooldown = 0; // Prevents re-triggering on same puddle within 2s
+        // Precompute irregular organic puddle blobs
+        this.blobs = [];
+        const count = 7;
+        for (let i = 0; i < count; i++) {
+          const ang = (i / count) * Math.PI * 2;
+          const dist = radius * (0.35 + Math.random() * 0.25);
+          const r = radius * (0.48 + Math.random() * 0.22);
+          this.blobs.push({
+            ox: Math.cos(ang) * dist,
+            oy: Math.sin(ang) * dist,
+            r
+          });
+        }
+      }
+
+      update(dt) {
+        if (this.cooldown > 0) {
+          this.cooldown = Math.max(0, this.cooldown - dt);
+        }
+      }
+
+      checkCollision(pen) {
+        if (this.cooldown > 0) return false;
+        const dx = pen.x - this.x;
+        const dy = pen.y - this.y;
+        const hitR = this.radius * 0.85;
+        if (dx * dx + dy * dy <= hitR * hitR) {
+          this.cooldown = 2.2;
+          return true;
+        }
+        return false;
+      }
+
+      render(ctx) {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+
+        // Subtle dark border so matte white puddle stands out sharply against warm off-white paper
+        ctx.fillStyle = "#cbd5e1";
+        ctx.beginPath();
+        ctx.arc(0, 0, this.radius * 0.78 + 2.5, 0, Math.PI * 2);
+        for (let i = 0; i < this.blobs.length; i++) {
+          const b = this.blobs[i];
+          ctx.moveTo(b.ox + b.r + 2, b.oy);
+          ctx.arc(b.ox, b.oy, b.r + 2.2, 0, Math.PI * 2);
+        }
+        ctx.fill();
+
+        // Bright Chalk-White Correction Fluid
+        ctx.fillStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.arc(0, 0, this.radius * 0.78, 0, Math.PI * 2);
+        for (let i = 0; i < this.blobs.length; i++) {
+          const b = this.blobs[i];
+          ctx.moveTo(b.ox + b.r, b.oy);
+          ctx.arc(b.ox, b.oy, b.r, 0, Math.PI * 2);
+        }
+        ctx.fill();
+
+        // Label inside puddle
+        ctx.font = "800 9px 'Inter', sans-serif";
+        ctx.fillStyle = "#475569";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("WITE-OUT", 0, -3);
+        ctx.font = "700 8px 'Inter', sans-serif";
+        ctx.fillStyle = "#64748b";
+        ctx.fillText("1s LOCK", 0, 7);
+
+        ctx.restore();
+      }
+    }
+
+    /* =====================================================================
+       9. 60-SECOND COFFEE SPILL BOSS EVENT
+       ===================================================================== */
+    class CoffeeSpillBoss {
+      constructor() {
+        this.reset();
+      }
+
+      reset() {
+        this.state = "IDLE"; // IDLE, WARNING, ACTIVE, RECEDE
+        this.timer = 0;
+        this.direction = "TOP"; // TOP, BOTTOM, LEFT, RIGHT
+        this.coverage = 0.56;   // Floods 56% of arena, leaving a 44% safe corridor
+        this.currentProgress = 0; // 0..1 wave surge progress
+      }
+
+      trigger(bounds, pen) {
+        // Choose spill edge opposite to or perpendicular to player so it is always fair and readable
+        const dirs = ["TOP", "BOTTOM", "LEFT", "RIGHT"];
+        if (pen.y < bounds.height * 0.4) {
+          this.direction = "BOTTOM";
+        } else if (pen.y > bounds.height * 0.6) {
+          this.direction = "TOP";
+        } else {
+          this.direction = dirs[Math.floor(Math.random() * dirs.length)];
+        }
+
+        this.state = "WARNING";
+        this.timer = CONFIG.COFFEE_WARNING_TIME;
+        this.currentProgress = 0;
+      }
+
+      update(dt, bounds, paperEnv, particles) {
+        if (this.state === "IDLE") return;
+
+        this.timer -= dt;
+
+        if (this.state === "WARNING") {
+          if (this.timer <= 0) {
+            this.state = "ACTIVE";
+            this.timer = CONFIG.COFFEE_ACTIVE_TIME;
+          }
+        } else if (this.state === "ACTIVE") {
+          // Smoothly surge wave in over first 1.6s, then hold
+          const elapsed = CONFIG.COFFEE_ACTIVE_TIME - this.timer;
+          this.currentProgress = Math.min(1, elapsed / 1.55);
+
+          // Spawn coffee splash droplets along the foam crest
+          if (Math.random() < 0.55) {
+            const rect = this.getFloodRect(bounds);
+            const sx = rect.x + Math.random() * rect.w;
+            const sy = rect.y + Math.random() * rect.h;
+            particles.spawnParticle(
+              sx, sy,
+              (Math.random() - 0.5) * 90,
+              (Math.random() - 0.5) * 90,
+              3 + Math.random() * 4,
+              "#78350f",
+              0.35
+            );
+          }
+
+          if (this.timer <= 0) {
+            this.state = "RECEDE";
+            this.timer = CONFIG.COFFEE_RECEDE_TIME;
+            // Leave behind harmless vintage coffee ring stains on the notebook paper
+            paperEnv.addCoffeeStainRing(
+              bounds.width * (0.25 + Math.random() * 0.5),
+              bounds.height * (0.25 + Math.random() * 0.5),
+              48 + Math.random() * 35
+            );
+          }
+        } else if (this.state === "RECEDE") {
+          this.currentProgress = Math.max(0, this.timer / CONFIG.COFFEE_RECEDE_TIME);
+          if (this.timer <= 0) {
+            this.state = "IDLE";
+            this.currentProgress = 0;
+          }
+        }
+      }
+
+      getFloodRect(bounds) {
+        const p = this.state === "WARNING" ? 1.0 : this.currentProgress;
+        const cov = this.coverage * p;
+
+        if (this.direction === "TOP") {
+          return { x: 0, y: 0, w: bounds.width, h: bounds.height * cov };
+        } else if (this.direction === "BOTTOM") {
+          const h = bounds.height * cov;
+          return { x: 0, y: bounds.height - h, w: bounds.width, h };
+        } else if (this.direction === "LEFT") {
+          return { x: 0, y: 0, w: bounds.width * cov, h: bounds.height };
+        } else {
+          const w = bounds.width * cov;
+          return { x: bounds.width - w, y: 0, w, h: bounds.height };
+        }
+      }
+
+      checkCollision(pen, bounds) {
+        if (this.state !== "ACTIVE" || this.currentProgress < 0.15) return false;
+        const r = this.getFloodRect(bounds);
+        const pad = 10; // Forgiving inner foam edge
+        return (
+          pen.x > r.x + pad &&
+          pen.x < r.x + r.w - pad &&
+          pen.y > r.y + pad &&
+          pen.y < r.y + r.h - pad
+        );
+      }
+
+      render(ctx, bounds, time) {
+        if (this.state === "IDLE") return;
+
+        const r = this.getFloodRect(bounds);
+        ctx.save();
+
+        if (this.state === "WARNING") {
+          // Flashing Amber/Red Danger Zone & Safe Zone Guide
+          const pulse = 0.14 + 0.08 * Math.sin(time * 16);
+          ctx.fillStyle = `rgba(217, 119, 6, ${pulse})`;
+          ctx.fillRect(r.x, r.y, r.w, r.h);
+
+          ctx.strokeStyle = "#b45309";
+          ctx.lineWidth = 3;
+          ctx.setLineDash([12, 8]);
+          ctx.strokeRect(r.x + 2, r.y + 2, r.w - 4, r.h - 4);
+          ctx.setLineDash([]);
+
+          // Wobbling Coffee Mug Icon & Countdown in Center of Flood Zone
+          const cx = r.x + r.w * 0.5;
+          const cy = r.y + r.h * 0.5;
+          ctx.translate(cx, cy);
+          ctx.rotate(Math.sin(time * 28) * 0.18);
+
+          ctx.fillStyle = "rgba(253, 250, 242, 0.94)";
+          ctx.strokeStyle = "#78350f";
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.roundRect(-130, -34, 260, 68, 12);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.font = "22px 'Black Ops One', sans-serif";
+          ctx.fillStyle = "#b45309";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(`☕ COFFEE SPILL IN ${this.timer.toFixed(1)}s!`, 0, -7);
+
+          ctx.font = "800 12px 'Inter', sans-serif";
+          ctx.fillStyle = "#15803d";
+          ctx.fillText("STEER TO SAFE ZONE OUTSIDE THIS BOX!", 0, 16);
+        } else {
+          // ACTIVE or RECEDE: Rich Espresso Wave with Wavy Crema Foam Edge
+          ctx.fillStyle = this.state === "RECEDE"
+            ? `rgba(69, 26, 3, ${0.75 * this.currentProgress})`
+            : "rgba(69, 26, 3, 0.90)";
+          ctx.fillRect(r.x, r.y, r.w, r.h);
+
+          // Inner warm roast sheen
+          ctx.fillStyle = "rgba(120, 53, 15, 0.45)";
+          ctx.fillRect(r.x + 8, r.y + 8, Math.max(0, r.w - 16), Math.max(0, r.h - 16));
+
+          // Crema Foam Border
+          ctx.strokeStyle = "#fde68a";
+          ctx.lineWidth = 6;
+          ctx.strokeRect(r.x, r.y, r.w, r.h);
+        }
+
+        ctx.restore();
+      }
+    }
+
+    /* =====================================================================
+       10. MAIN GAME CONTROLLER & STATE MACHINE
+       ===================================================================== */
+    class RedInkDriftGame {
+      constructor() {
+        this.canvas = document.getElementById("gameCanvas");
+        this.ctx = this.canvas.getContext("2d");
+
+        // Subsystems
+        this.sound = new SoundEngine();
+        this.paper = new PaperEnvironment();
+        this.particles = new ParticleSystem();
+        this.trail = new InkTrailManager();
+        this.coffeeBoss = new CoffeeSpillBoss();
+
+        // Game State
+        this.state = "MENU"; // MENU, PLAYING, PAUSED, HITSTOP, GAMEOVER
+        this.width = window.innerWidth;
+        this.height = window.innerHeight;
+        this.pen = new RocketPen(this.width * 0.5, this.height * 0.5);
+
+        // Entities
+        this.answers = [];
+        this.erasers = [];
+        this.whiteOuts = [];
+
+        // Scoring & Timers
+        this.score = 0;
+        this.displayScore = 0;
+        this.bestScore = this.loadBestScore();
+        this.combo = 1;
+        this.maxCombo = 1;
+        this.comboTimer = 0;
+        this.answersGraded = 0;
+        this.survivalTime = 0;
+        this.nextCoffeeTime = CONFIG.COFFEE_BOSS_INTERVAL;
+        this.hitStopTimer = 0;
+
+        // Settings & Camera Shake
+        this.reducedMotion = false;
+        this.trailPresetKey = "STANDARD";
+        this.shakeMagnitude = 0;
+        this.globalTime = 0;
+
+        // Input State
+        this.keys = { left: false, right: false, boost: false };
+        this.touch = { left: false, right: false, boost: false };
+
+        this.setupResize();
+        this.setupInputListeners();
+        this.setupUIHandlers();
+        this.initDemoBackgroundEntities();
+        this.updateBestScoreUI();
+
+        this.lastFrameTime = performance.now();
+        requestAnimationFrame((ts) => this.loop(ts));
+      }
+
+      loadBestScore() {
+        try {
+          const val = localStorage.getItem("red_ink_drift_best_score");
+          return val ? parseInt(val, 10) || 0 : 0;
+        } catch (e) {
+          return 0;
+        }
+      }
+
+      saveBestScore(newBest) {
+        this.bestScore = newBest;
+        try {
+          localStorage.setItem("red_ink_drift_best_score", String(newBest));
+        } catch (e) {}
+        this.updateBestScoreUI();
+      }
+
+      updateBestScoreUI() {
+        document.getElementById("menuBestScore").textContent = this.bestScore.toLocaleString();
+        document.getElementById("hudBest").textContent = this.bestScore.toLocaleString();
+      }
+
+      setupResize() {
+        const onResize = () => {
+          const dpr = Math.min(window.devicePixelRatio || 1, 2);
+          this.width = window.innerWidth;
+          this.height = window.innerHeight;
+          this.canvas.width = this.width * dpr;
+          this.canvas.height = this.height * dpr;
+          this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        };
+        window.addEventListener("resize", onResize);
+        onResize();
+      }
+
+      setupInputListeners() {
+        window.addEventListener("keydown", (e) => {
+          if (e.code === "ArrowLeft" || e.code === "KeyA") {
+            this.keys.left = true;
+          } else if (e.code === "ArrowRight" || e.code === "KeyD") {
+            this.keys.right = true;
+          } else if (e.code === "Space") {
+            if (this.state === "PLAYING") {
+              e.preventDefault();
+              if (!this.keys.boost) this.sound.playBoostBurst();
+              this.keys.boost = true;
+            }
+          } else if (e.code === "Escape" || e.code === "KeyP") {
+            if (this.state === "PLAYING") this.pauseGame();
+            else if (this.state === "PAUSED") this.resumeGame();
+          } else if (e.code === "KeyR") {
+            if (this.state === "PLAYING" || this.state === "PAUSED" || this.state === "GAMEOVER") {
+              this.startNewGame();
+            }
+          } else if (e.code === "KeyM") {
+            this.toggleMute();
+          }
+        });
+
+        window.addEventListener("keyup", (e) => {
+          if (e.code === "ArrowLeft" || e.code === "KeyA") {
+            this.keys.left = false;
+          } else if (e.code === "ArrowRight" || e.code === "KeyD") {
+            this.keys.right = false;
+          } else if (e.code === "Space") {
+            this.keys.boost = false;
+          }
+        });
+
+        // Clear stuck keys on window blur
+        window.addEventListener("blur", () => {
+          this.keys.left = false;
+          this.keys.right = false;
+          this.keys.boost = false;
+          this.touch.left = false;
+          this.touch.right = false;
+          this.touch.boost = false;
+        });
+
+        // Mobile & Touch Button Bindings
+        const bindHoldButton = (id, prop) => {
+          const el = document.getElementById(id);
+          const start = (ev) => {
+            ev.preventDefault();
+            if (prop === "boost" && !this.touch.boost) this.sound.playBoostBurst();
+            this.touch[prop] = true;
+          };
+          const end = (ev) => {
+            ev.preventDefault();
+            this.touch[prop] = false;
+          };
+          el.addEventListener("touchstart", start, { passive: false });
+          el.addEventListener("touchend", end, { passive: false });
+          el.addEventListener("touchcancel", end, { passive: false });
+          el.addEventListener("mousedown", start);
+          el.addEventListener("mouseup", end);
+          el.addEventListener("mouseleave", end);
+        };
+
+        bindHoldButton("btnTouchLeft", "left");
+        bindHoldButton("btnTouchRight", "right");
+        bindHoldButton("btnTouchBoost", "boost");
+      }
+
+      setupUIHandlers() {
+        const click = (id, fn) => {
+          const el = document.getElementById(id);
+          if (el) {
+            el.addEventListener("click", () => {
+              this.sound.playClick();
+              fn();
+            });
+          }
+        };
+
+        // Main Menu
+        click("btnStartGame", () => this.startNewGame());
+        click("btnOpenHowTo", () => document.getElementById("howToModal").classList.remove("hidden"));
+        click("btnCloseHowTo", () => document.getElementById("howToModal").classList.add("hidden"));
+        click("btnHowToGotIt", () => document.getElementById("howToModal").classList.add("hidden"));
+
+        click("btnOpenSettings", () => document.getElementById("settingsModal").classList.remove("hidden"));
+        click("btnCloseSettings", () => document.getElementById("settingsModal").classList.add("hidden"));
+        click("btnSaveSettings", () => document.getElementById("settingsModal").classList.add("hidden"));
+
+        click("btnMenuMute", () => this.toggleMute());
+        click("btnHudMute", () => this.toggleMute());
+
+        // HUD & Pause
+        click("btnHudPause", () => {
+          if (this.state === "PLAYING") this.pauseGame();
+          else if (this.state === "PAUSED") this.resumeGame();
+        });
+        click("btnResumeGame", () => this.resumeGame());
+        click("btnPauseRestart", () => this.startNewGame());
+        click("btnPauseSettings", () => document.getElementById("settingsModal").classList.remove("hidden"));
+        click("btnPauseMainMenu", () => this.returnToMainMenu());
+
+        // Game Over
+        click("btnPlayAgain", () => this.startNewGame());
+        click("btnGoMainMenu", () => this.returnToMainMenu());
+
+        // Settings Controls
+        click("btnSettingSound", () => this.toggleMute());
+
+        const volSlider = document.getElementById("sliderVolume");
+        volSlider.addEventListener("input", (e) => {
+          const pct = parseInt(e.target.value, 10);
+          this.sound.volume = pct / 100;
+          document.getElementById("labelSettingVolume").textContent = `${pct}%`;
+        });
+
+        click("btnSettingShake", () => {
+          this.reducedMotion = !this.reducedMotion;
+          document.getElementById("btnSettingShake").textContent = this.reducedMotion ? "REDUCED" : "NORMAL";
+        });
+
+        click("btnSettingTrail", () => {
+          const keys = ["STANDARD", "LONG", "ENDLESS"];
+          const nextIdx = (keys.indexOf(this.trailPresetKey) + 1) % keys.length;
+          this.trailPresetKey = keys[nextIdx];
+          this.trail.maxVertices = CONFIG.TRAIL_PRESETS[this.trailPresetKey];
+          document.getElementById("btnSettingTrail").textContent = this.trailPresetKey;
+        });
+
+        click("btnTriggerCoffeeNow", () => {
+          document.getElementById("settingsModal").classList.add("hidden");
+          if (this.state !== "PLAYING") {
+            this.startNewGame();
+          }
+          this.triggerCoffeeBossEvent();
+        });
+      }
+
+      toggleMute() {
+        this.sound.enabled = !this.sound.enabled;
+        const icon = this.sound.enabled ? "🔊" : "🔇";
+        document.getElementById("iconHudMute").textContent = icon;
+        document.getElementById("iconMenuMute").textContent = icon;
+        document.getElementById("labelMenuMute").textContent = this.sound.enabled ? "Sound: ON" : "Sound: OFF";
+        document.getElementById("btnSettingSound").textContent = this.sound.enabled ? "ON" : "OFF";
+      }
+
+      triggerScreenShake(amount) {
+        if (this.reducedMotion) return;
+        this.shakeMagnitude = Math.min(18, Math.max(this.shakeMagnitude, amount));
+      }
+
+      initDemoBackgroundEntities() {
+        this.pen.reset(this.width * 0.35, this.height * 0.55);
+        this.trail.reset();
+        this.answers = [];
+        for (let i = 0; i < 3; i++) {
+          this.spawnStudentAnswer();
+        }
+      }
+
+      startNewGame() {
+        this.sound.resume();
+
+        // Hide Menu / Pause / GameOver Overlays & Show HUD
+        document.getElementById("menuOverlay").classList.add("hidden");
+        document.getElementById("pauseOverlay").classList.add("hidden");
+        document.getElementById("gameOverOverlay").classList.add("hidden");
+        document.getElementById("hudOverlay").classList.remove("hidden");
+
+        // Reset Core State
+        this.state = "PLAYING";
+        this.score = 0;
+        this.displayScore = 0;
+        this.combo = 1;
+        this.maxCombo = 1;
+        this.comboTimer = 0;
+        this.answersGraded = 0;
+        this.survivalTime = 0;
+        this.nextCoffeeTime = CONFIG.COFFEE_BOSS_INTERVAL;
+        this.shakeMagnitude = 0;
+
+        this.paper.resetMarks();
+        this.particles.clear();
+        this.trail.reset();
+        this.trail.maxVertices = CONFIG.TRAIL_PRESETS[this.trailPresetKey];
+        this.coffeeBoss.reset();
+
+        // Place Pen near center-left facing right
+        this.pen.reset(this.width * 0.28, this.height * 0.5);
+        this.pen.angle = -0.15;
+
+        // Spawn Initial Student Answers, 1 Giant Eraser, and 1 White-Out Puddle
+        this.answers = [];
+        this.erasers = [];
+        this.whiteOuts = [];
+
+        for (let i = 0; i < 3; i++) {
+          this.spawnStudentAnswer();
+        }
+        this.spawnGiantEraser();
+        this.spawnWhiteOutPuddle();
+
+        this.updateHUD();
+      }
+
+      pauseGame() {
+        if (this.state !== "PLAYING") return;
+        this.state = "PAUSED";
+        document.getElementById("pauseOverlay").classList.remove("hidden");
+      }
+
+      resumeGame() {
+        if (this.state !== "PAUSED") return;
+        this.state = "PLAYING";
+        document.getElementById("pauseOverlay").classList.add("hidden");
+        this.lastFrameTime = performance.now();
+      }
+
+      returnToMainMenu() {
+        this.state = "MENU";
+        document.getElementById("hudOverlay").classList.add("hidden");
+        document.getElementById("pauseOverlay").classList.add("hidden");
+        document.getElementById("gameOverOverlay").classList.add("hidden");
+        document.getElementById("menuOverlay").classList.remove("hidden");
+        this.initDemoBackgroundEntities();
+      }
+
+      /* =====================================================================
+         ENTITY SPAWNING HELPERS
+         ===================================================================== */
+      getSafeSpawnCoords(margin = 135, minDistFromPen = 175) {
+        const w = Math.max(360, this.width);
+        const h = Math.max(360, this.height);
+        for (let attempt = 0; attempt < 30; attempt++) {
+          const x = margin + Math.random() * Math.max(60, w - margin * 2);
+          const y = margin + Math.random() * Math.max(60, h - margin * 2);
+          const dPen = Math.hypot(x - this.pen.x, y - this.pen.y);
+          if (dPen < minDistFromPen) continue;
+
+          let overlap = false;
+          for (let i = 0; i < this.answers.length; i++) {
+            if (Math.hypot(x - this.answers[i].x, y - this.answers[i].y) < 145) {
+              overlap = true;
+              break;
+            }
+          }
+          if (!overlap) return { x, y };
+        }
+        return {
+          x: margin + Math.random() * Math.max(60, w - margin * 2),
+          y: margin + Math.random() * Math.max(60, h - margin * 2)
+        };
+      }
+
+      spawnStudentAnswer() {
+        const pos = this.getSafeSpawnCoords(125, 140);
+        const data = STUDENT_ANSWERS_POOL[Math.floor(Math.random() * STUDENT_ANSWERS_POOL.length)];
+        this.answers.push(new StudentAnswer(pos.x, pos.y, data));
+      }
+
+      spawnGiantEraser() {
+        const pos = this.getSafeSpawnCoords(110, 240);
+        const speed = 78 + Math.min(55, this.survivalTime * 0.45);
+        const ang = Math.random() * Math.PI * 2;
+        this.erasers.push(new GiantEraser(pos.x, pos.y, Math.cos(ang) * speed, Math.sin(ang) * speed));
+      }
+
+      spawnWhiteOutPuddle() {
+        const pos = this.getSafeSpawnCoords(120, 190);
+        this.whiteOuts.push(new WhiteOutPuddle(pos.x, pos.y, 32));
+      }
+
+      triggerCoffeeBossEvent() {
+        this.coffeeBoss.trigger({ width: this.width, height: this.height }, this.pen);
+        this.sound.playCoffeeWarning();
+        this.triggerScreenShake(6);
+      }
+
+      /* =====================================================================
+         CORE UPDATE LOOP
+         ===================================================================== */
+      loop(timestamp) {
+        const rawDt = (timestamp - this.lastFrameTime) / 1000;
+        this.lastFrameTime = timestamp;
+        const dt = Math.min(0.05, Math.max(0.001, rawDt));
+        this.globalTime += dt;
+
+        if (this.state === "MENU") {
+          this.updateMenuDemo(dt);
+        } else if (this.state === "PLAYING") {
+          this.updatePlaying(dt);
+        } else if (this.state === "HITSTOP") {
+          this.hitStopTimer -= dt;
+          this.particles.update(dt * 0.4);
+          if (this.hitStopTimer <= 0) {
+            this.state = "GAMEOVER";
+            document.getElementById("gameOverOverlay").classList.remove("hidden");
+          }
+        } else if (this.state === "GAMEOVER") {
+          this.particles.update(dt);
+        }
+
+        // Decay camera shake smoothly
+        if (this.shakeMagnitude > 0) {
+          this.shakeMagnitude = Math.max(0, this.shakeMagnitude - dt * 28);
+        }
+
+        this.renderScene();
+        requestAnimationFrame((ts) => this.loop(ts));
+      }
+
+      updateMenuDemo(dt) {
+        // Autonomous figure-eight pen drift in background of Main Menu
+        this.pen.turnInput = Math.sin(this.globalTime * 1.35) * 0.85;
+        this.pen.isBoosting = false;
+        this.pen.update(dt, 10, { width: this.width, height: this.height }, this.particles, this.sound);
+        this.trail.addPoint(this.pen.x, this.pen.y);
+        this.trail.update(dt);
+        this.particles.update(dt);
+        for (let i = 0; i < this.answers.length; i++) {
+          this.answers[i].update(dt);
+        }
+      }
+
+      updatePlaying(dt) {
+        this.survivalTime += dt;
+
+        // Survival points
+        this.score += CONFIG.SURVIVAL_PTS_PER_SEC * dt;
+        this.displayScore += (this.score - this.displayScore) * Math.min(1, dt * 14);
+
+        // Combo decay timer
+        if (this.combo > 1) {
+          this.comboTimer -= dt;
+          if (this.comboTimer <= 0) {
+            this.combo = 1;
+            this.comboTimer = 0;
+          }
+        }
+
+        // Progressive Hazard Scaling
+        const desiredErasers = Math.min(3, 1 + Math.floor(this.survivalTime / 38));
+        if (this.erasers.length < desiredErasers) {
+          this.spawnGiantEraser();
+        }
+        const desiredWhiteOuts = Math.min(3, 1 + Math.floor(this.survivalTime / 45));
+        if (this.whiteOuts.length < desiredWhiteOuts) {
+          this.spawnWhiteOutPuddle();
+        }
+
+        // 60-Second Coffee Spill Boss Trigger
+        if (this.survivalTime >= this.nextCoffeeTime) {
+          this.nextCoffeeTime += CONFIG.COFFEE_BOSS_INTERVAL;
+          this.triggerCoffeeBossEvent();
+        }
+
+        // Read Player Steering & Boost Input
+        let steer = 0;
+        if (this.keys.left || this.touch.left) steer -= 1;
+        if (this.keys.right || this.touch.right) steer += 1;
+        this.pen.turnInput = steer;
+        this.pen.isBoosting = this.keys.boost || this.touch.boost;
+
+        const bounds = { width: this.width, height: this.height };
+        this.pen.update(dt, this.survivalTime, bounds, this.particles, this.sound);
+
+        // Evaluate Ink Trail Loop-Closure & Self-Collision
+        const trailResult = this.trail.evaluateTrailInteractions(
+          { x: this.pen.x, y: this.pen.y },
+          { x: this.pen.prevX, y: this.pen.prevY },
+          this.answers
+        );
+
+        if (trailResult.type === "GRADE_LOOP") {
+          this.handleSuccessfulGrade(trailResult.enclosedAnswers);
+        } else if (trailResult.type === "SELF_COLLISION") {
+          this.triggerGameOver("Crossed Your Own Red Ink Trail", "SELF-INKED!");
+          return;
+        }
+
+        // Add current pen position to trail
+        this.trail.addPoint(this.pen.x, this.pen.y);
+        this.trail.update(dt);
+
+        // Update Student Answers
+        for (let i = 0; i < this.answers.length; i++) {
+          this.answers[i].update(dt);
+        }
+
+        // Update Giant Erasers & Check Collision
+        for (let i = 0; i < this.erasers.length; i++) {
+          const er = this.erasers[i];
+          er.update(dt, bounds, this.particles, this.trail);
+          if (er.checkCollision(this.pen)) {
+            this.triggerGameOver("Erased by a Giant Pink Eraser", "ERASED!");
+            return;
+          }
+        }
+
+        // Update White-Out Puddles & Check Steering Lock
+        for (let i = 0; i < this.whiteOuts.length; i++) {
+          const wo = this.whiteOuts[i];
+          wo.update(dt);
+          if (wo.checkCollision(this.pen)) {
+            this.pen.whiteOutTimer = CONFIG.WHITE_OUT_LOCK_DURATION;
+            this.sound.playWhiteOutSquelch();
+            this.particles.spawnPopup(
+              this.pen.x,
+              this.pen.y - 25,
+              "WHITE-OUT!",
+              "STEERING LOCKED 1.0s",
+              "#334155",
+              0.95
+            );
+          }
+        }
+
+        // Update 60s Coffee Spill Boss & Check Lethal Flood Collision
+        this.coffeeBoss.update(dt, bounds, this.paper, this.particles);
+        if (this.coffeeBoss.checkCollision(this.pen, bounds)) {
+          this.triggerGameOver("Submerged in a Dark Roast Coffee Spill", "CAFFEINATED!");
+          return;
+        }
+
+        this.paper.update(dt);
+        this.particles.update(dt);
+        this.updateHUD();
+      }
+
+      handleSuccessfulGrade(enclosedAnswers) {
+        const count = enclosedAnswers.length;
+        this.answersGraded += count;
+
+        // Update Combo Multiplier
+        this.combo += count;
+        if (this.combo > this.maxCombo) this.maxCombo = this.combo;
+        this.comboTimer = CONFIG.COMBO_DURATION;
+
+        // Calculate Points (Multi-grade bonus if >1 answer circled in one loop!)
+        const multiBonus = count > 1 ? 1.5 : 1.0;
+        const earned = Math.round(CONFIG.GRADE_BASE_POINTS * count * this.combo * multiBonus);
+        this.score += earned;
+
+        // Stamp & Archive Each Enclosed Answer
+        for (let i = 0; i < count; i++) {
+          const ans = enclosedAnswers[i];
+          ans.graded = true;
+          const stamp = GRADE_STAMPS[Math.floor(Math.random() * GRADE_STAMPS.length)];
+          this.paper.addGradedMemory(ans, stamp);
+          this.particles.emitInkBurst(ans.x, ans.y, 30, 230);
+
+          const idx = this.answers.indexOf(ans);
+          if (idx !== -1) this.answers.splice(idx, 1);
+
+          // Spawn replacement answer
+          this.spawnStudentAnswer();
+        }
+
+        // Occasional extra answer on board as difficulty rises
+        if (this.answers.length < 4 && this.survivalTime > 25) {
+          this.spawnStudentAnswer();
+        }
+
+        // Audio & Visual Celebration
+        this.sound.playGradeSuccess(this.combo, count);
+        this.triggerScreenShake(count > 1 ? 8 : 4.5);
+
+        // Replenish some boost energy on successful grade
+        this.pen.boostEnergy = Math.min(100, this.pen.boostEnergy + 28 * count);
+
+        const title = count > 1 ? `${count}x MULTI-GRADE! +${earned}` : `GRADED! +${earned}`;
+        const sub = `COMBO x${this.combo} • INK CLEARED`;
+        this.particles.spawnPopup(
+          enclosedAnswers[0].x,
+          enclosedAnswers[0].y - 18,
+          title,
+          sub,
+          "#d41924",
+          count > 1 ? 1.22 : 1.05
+        );
+      }
+
+      triggerGameOver(causeText, stampLabel) {
+        this.state = "HITSTOP";
+        this.hitStopTimer = 0.24; // Brief dramatic hit-stop freeze
+
+        this.sound.playCrashSplatter();
+        this.triggerScreenShake(14);
+
+        // Dramatic crimson ink-splatter burst across the paper
+        this.particles.emitInkBurst(this.pen.x, this.pen.y, 55, 310);
+        for (let i = 0; i < 14; i++) {
+          const ang = Math.random() * Math.PI * 2;
+          const dist = Math.random() * 65;
+          this.paper.addSplatterDrop(
+            this.pen.x + Math.cos(ang) * dist,
+            this.pen.y + Math.sin(ang) * dist,
+            3 + Math.random() * 9
+          );
+        }
+
+        const finalScoreInt = Math.floor(this.score);
+        const isNewRecord = finalScoreInt > this.bestScore;
+        if (isNewRecord) {
+          this.saveBestScore(finalScoreInt);
+        }
+
+        // Populate Game Over Screen UI
+        document.getElementById("gameOverStamp").textContent = stampLabel;
+        document.getElementById("gameOverCause").textContent = causeText;
+        document.getElementById("gameOverJoke").textContent =
+          GAME_OVER_JOKES[Math.floor(Math.random() * GAME_OVER_JOKES.length)];
+        document.getElementById("goFinalScore").textContent = finalScoreInt.toLocaleString();
+        document.getElementById("goBestScore").textContent = this.bestScore.toLocaleString();
+        document.getElementById("goMaxCombo").textContent = `x${this.maxCombo}`;
+        document.getElementById("goAnswersGraded").textContent = String(this.answersGraded);
+
+        const badge = document.getElementById("newRecordBadge");
+        if (isNewRecord && finalScoreInt > 0) badge.classList.remove("hidden");
+        else badge.classList.add("hidden");
+      }
+
+      updateHUD() {
+        document.getElementById("hudScore").textContent = Math.floor(this.displayScore).toLocaleString();
+        document.getElementById("hudCombo").textContent = `x${this.combo}`;
+        const comboPct = this.combo > 1 ? Math.max(0, (this.comboTimer / CONFIG.COMBO_DURATION) * 100) : 0;
+        document.getElementById("hudComboBar").style.width = `${comboPct}%`;
+
+        // Format survival timer MM:SS
+        const totalSecs = Math.floor(this.survivalTime);
+        const mins = String(Math.floor(totalSecs / 60)).padStart(2, "0");
+        const secs = String(totalSecs % 60).padStart(2, "0");
+        document.getElementById("hudTime").textContent = `${mins}:${secs}`;
+
+        // Coffee Boss Countdown
+        const coffeeRem = Math.max(0, Math.ceil(this.nextCoffeeTime - this.survivalTime));
+        document.getElementById("hudCoffeeTimer").textContent =
+          this.coffeeBoss.state !== "IDLE" ? "ACTIVE!" : `${coffeeRem}s`;
+
+        document.getElementById("hudGradedCount").textContent = String(this.answersGraded);
+
+        // Boost Meter
+        const boostPct = Math.round(this.pen.boostEnergy);
+        document.getElementById("hudBoostPct").textContent = `${boostPct}%`;
+        document.getElementById("hudBoostBar").style.width = `${boostPct}%`;
+
+        // Dynamic Status Banner
+        const banner = document.getElementById("hudStatusBanner");
+        if (this.coffeeBoss.state === "WARNING") {
+          banner.className = "animate-danger-banner px-3.5 py-1 rounded-full font-extrabold text-xs sm:text-sm tracking-wide uppercase shadow-md border-2 bg-amber-500 text-stone-950 border-stone-900";
+          banner.textContent = `⚠️ WARNING: COFFEE SPILL INCOMING (${this.coffeeBoss.timer.toFixed(1)}s)!`;
+        } else if (this.pen.whiteOutTimer > 0) {
+          banner.className = "px-3.5 py-1 rounded-full font-extrabold text-xs sm:text-sm tracking-wide uppercase shadow-md border-2 bg-white text-stone-900 border-stone-800";
+          banner.textContent = `🤍 WHITE-OUT! STEERING LOCKED (${this.pen.whiteOutTimer.toFixed(1)}s)`;
+        } else if (this.trail.snapCandidate) {
+          banner.className = "px-3.5 py-1 rounded-full font-extrabold text-xs sm:text-sm tracking-wide uppercase shadow-md border-2 bg-emerald-600 text-white border-emerald-950";
+          banner.textContent = `⭕ TOUCH GREEN RING TO COMPLETE GRADE!`;
+        } else {
+          banner.className = "hidden";
+        }
+      }
+
+      /* =====================================================================
+         MASTER SCENE RENDERING
+         ===================================================================== */
+      renderScene() {
+        const ctx = this.ctx;
+        ctx.save();
+
+        // Apply subtle camera shake if active
+        if (this.shakeMagnitude > 0 && !this.reducedMotion) {
+          const sx = (Math.random() - 0.5) * this.shakeMagnitude * 2;
+          const sy = (Math.random() - 0.5) * this.shakeMagnitude * 2;
+          ctx.translate(sx, sy);
+        }
+
+        // Subtle paper parallax shift based on pen position
+        const parallaxX = (this.pen.x - this.width * 0.5) * 0.08;
+        const parallaxY = (this.pen.y - this.height * 0.5) * 0.08;
+
+        // 1. Notebook Paper World & Permanent Graded Marks
+        this.paper.render(ctx, this.width, this.height, parallaxX, parallaxY);
+
+        // 2. White-Out Correction Fluid Puddles
+        for (let i = 0; i < this.whiteOuts.length; i++) {
+          this.whiteOuts[i].render(ctx);
+        }
+
+        // 3. Active Ungraded Student Answers
+        for (let i = 0; i < this.answers.length; i++) {
+          this.answers[i].render(ctx);
+        }
+
+        // 4. Coffee Spill Boss Wave
+        this.coffeeBoss.render(ctx, { width: this.width, height: this.height }, this.globalTime);
+
+        // 5. Continuous Crimson Ink Trail & Dissolving Loops
+        this.trail.render(ctx, { x: this.pen.x, y: this.pen.y });
+
+        // 6. Patrolling Giant Erasers
+        for (let i = 0; i < this.erasers.length; i++) {
+          this.erasers[i].render(ctx);
+        }
+
+        // 7. Rocket-Powered Red Grading Pen
+        this.pen.render(ctx, this.globalTime);
+
+        // 8. Pooled Particles & Score Popups
+        this.particles.render(ctx);
+
+        ctx.restore();
+      }
+    }
+
+    // Start the game engine on window load
+    window.onload = function () {
+      window.redInkDrift = new RedInkDriftGame();
+    };
+  </script>
+</body>
+</html>

@@ -34,7 +34,7 @@
       overflow: hidden;
       background-color: #1c1917;
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      touch-action: none;
+      overscroll-behavior: none;
     }
 
     .font-hand {
@@ -129,6 +129,7 @@
       width: 100%;
       height: 100%;
       cursor: crosshair;
+      touch-action: none;
     }
 
     /* Custom Range Slider */
@@ -235,32 +236,16 @@
       </div>
     </div>
 
-    <!-- Bottom Mobile / Touch Controls & Desktop Hint -->
+    <!-- Bottom Mobile / Desktop Hint & Unobtrusive Touch Boost Button (Left/Right Buttons Removed) -->
     <div class="w-full max-w-7xl mx-auto flex items-end justify-between pointer-events-none pb-1 sm:pb-2">
-      <!-- Touch Steering Left / Right -->
-      <div id="touchControlsLeft" class="flex gap-2.5 pointer-events-auto md:opacity-40 hover:opacity-100 transition-opacity">
-        <button id="btnTouchLeft" class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-[#fdfaf2]/90 active:bg-red-100 border-2 border-stone-800 shadow-[0_4px_0_#292524] active:translate-y-1 flex flex-col items-center justify-center text-stone-900 select-none">
-          <svg class="w-7 h-7 sm:w-8 sm:h-8 stroke-[2.8]" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
-          <span class="text-[10px] font-extrabold uppercase tracking-wider">Left</span>
-        </button>
-        <button id="btnTouchRight" class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-[#fdfaf2]/90 active:bg-red-100 border-2 border-stone-800 shadow-[0_4px_0_#292524] active:translate-y-1 flex flex-col items-center justify-center text-stone-900 select-none">
-          <svg class="w-7 h-7 sm:w-8 sm:h-8 stroke-[2.8]" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
-          <span class="text-[10px] font-extrabold uppercase tracking-wider">Right</span>
-        </button>
+      <!-- Dynamic Control Mode Hint Pill -->
+      <div id="hudControlHint" class="flex items-center gap-2 bg-[#fdfaf2]/85 backdrop-blur-xs border border-stone-400/80 rounded-full px-3.5 py-1.5 text-[11px] sm:text-xs font-semibold text-stone-700 shadow-sm">
+        <span id="hudControlHintText">👆 Touch &amp; drag anywhere to guide the pen • ⌨️ A/D or ◀/▶ Steer • SPACE Boost</span>
       </div>
 
-      <!-- Desktop Subtle Control Hint -->
-      <div class="hidden lg:flex items-center gap-2 bg-[#fdfaf2]/85 border border-stone-400/80 rounded-full px-3.5 py-1 text-xs font-semibold text-stone-600 shadow-sm">
-        <span><kbd class="px-1.5 py-0.5 bg-white border border-stone-300 rounded text-stone-800 font-mono-num">A/D</kbd> or <kbd class="px-1.5 py-0.5 bg-white border border-stone-300 rounded text-stone-800 font-mono-num">◀/▶</kbd> Steer</span>
-        <span>•</span>
-        <span><kbd class="px-1.5 py-0.5 bg-white border border-stone-300 rounded text-stone-800 font-mono-num">SPACE</kbd> Rocket Boost</span>
-        <span>•</span>
-        <span class="text-red-700 font-bold">Circle Bad Answers to Grade &amp; Clear Ink!</span>
-      </div>
-
-      <!-- Touch Boost Button -->
-      <div class="pointer-events-auto md:opacity-40 hover:opacity-100 transition-opacity">
-        <button id="btnTouchBoost" class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-b from-red-600 to-red-700 active:from-red-700 active:to-red-800 text-white border-2 border-red-950 shadow-[0_4px_0_#450a0a] active:translate-y-1 flex flex-col items-center justify-center select-none">
+      <!-- Unobtrusive Touch Boost Button (Bottom-Right Corner) -->
+      <div id="touchBoostContainer" class="pointer-events-auto md:opacity-55 hover:opacity-100 transition-opacity">
+        <button id="btnTouchBoost" class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-b from-red-600 to-red-700 active:from-red-700 active:to-red-800 text-white border-2 border-red-950 shadow-[0_4px_0_#450a0a] active:translate-y-1 flex flex-col items-center justify-center select-none" style="touch-action: none;">
           <span class="text-xl sm:text-2xl leading-none">🚀</span>
           <span class="text-[10px] font-extrabold uppercase tracking-wider mt-1">Boost</span>
         </button>
@@ -388,9 +373,9 @@
           </div>
 
           <div class="bg-stone-900 text-stone-100 rounded-xl p-3.5 text-xs flex flex-wrap justify-between gap-2">
-            <div><strong class="text-amber-400">STEER:</strong> A / D or Left / Right Arrows (or Touch Buttons)</div>
-            <div><strong class="text-amber-400">BOOST:</strong> Spacebar / Boost Button</div>
-            <div><strong class="text-amber-400">PAUSE / RESTART:</strong> Esc / R</div>
+            <div><strong class="text-amber-400">TOUCH / MOUSE:</strong> Touch &amp; drag anywhere on the paper to steer</div>
+            <div><strong class="text-amber-400">KEYBOARD:</strong> A / D or Left / Right Arrows</div>
+            <div><strong class="text-amber-400">BOOST:</strong> Spacebar / Shift / Boost Button</div>
           </div>
         </div>
 
@@ -413,6 +398,15 @@
         </div>
 
         <div class="space-y-4 text-sm">
+          <!-- Control Mode Selector -->
+          <div class="flex items-center justify-between bg-white/80 p-3 rounded-xl border border-stone-300">
+            <div>
+              <div class="font-extrabold text-stone-900">Control Mode</div>
+              <div class="text-xs text-stone-500">Auto supports both finger drag &amp; keyboard</div>
+            </div>
+            <button id="btnSettingControlMode" class="btn-paper px-3 py-1.5 rounded-lg font-extrabold text-xs text-red-700">AUTO (BOTH)</button>
+          </div>
+
           <!-- Sound On/Off -->
           <div class="flex items-center justify-between bg-white/80 p-3 rounded-xl border border-stone-300">
             <div>
@@ -576,6 +570,11 @@
       TURN_RATE: 3.45,            // Radians per second steering angular velocity
       BOOST_TURN_RATE: 2.85,      // Slightly wider arc while boosting
       PEN_HITBOX_RADIUS: 6.5,     // Collision radius of the pen nib
+
+      // Touch Steering Tuning
+      TOUCH_PROPORTIONAL_ANGLE: 0.42, // Radians for full-rate turn response
+      TOUCH_DEADZONE_RAD: 0.025,      // Prevents micro-jitter when aligned with finger target
+      TOUCH_OCCLUSION_RADIUS: 28,     // Distance threshold under fingertip where swipe-vector blending activates
 
       // Ink Trail Settings
       TRAIL_SAMPLE_DIST: 7.5,     // Distance between sampled trail vertices
@@ -2446,18 +2445,35 @@
         // Settings & Camera Shake
         this.reducedMotion = false;
         this.trailPresetKey = "STANDARD";
+        this.controlMode = "AUTO"; // "AUTO", "KEYBOARD", "TOUCH"
+        this.lastInputMethod = (window.matchMedia && window.matchMedia("(pointer: coarse)").matches) ? "TOUCH" : "KEYBOARD";
         this.shakeMagnitude = 0;
         this.globalTime = 0;
 
-        // Input State
+        // Input State (Keyboard + Direct Pointer Touch-and-Drag Steering)
         this.keys = { left: false, right: false, boost: false };
-        this.touch = { left: false, right: false, boost: false };
+        this.touch = { boost: false };
+        this.pointerSteer = {
+          active: false,
+          pointerId: null,
+          pointerType: "touch",
+          x: 0,
+          y: 0,
+          anchorX: 0,
+          anchorY: 0,
+          dragDx: 0,
+          dragDy: 0,
+          hasDragged: false,
+          desiredAngle: 0,
+          fadeAlpha: 0
+        };
 
         this.setupResize();
         this.setupInputListeners();
         this.setupUIHandlers();
         this.initDemoBackgroundEntities();
         this.updateBestScoreUI();
+        this.updateControlHintUI();
 
         this.lastFrameTime = performance.now();
         requestAnimationFrame((ts) => this.loop(ts));
@@ -2499,12 +2515,17 @@
       }
 
       setupInputListeners() {
+        // 1. Desktop Keyboard Controls (Preserved 100%)
         window.addEventListener("keydown", (e) => {
           if (e.code === "ArrowLeft" || e.code === "KeyA") {
             this.keys.left = true;
+            this.lastInputMethod = "KEYBOARD";
+            this.updateControlHintUI();
           } else if (e.code === "ArrowRight" || e.code === "KeyD") {
             this.keys.right = true;
-          } else if (e.code === "Space") {
+            this.lastInputMethod = "KEYBOARD";
+            this.updateControlHintUI();
+          } else if (e.code === "Space" || e.code === "ShiftLeft" || e.code === "ShiftRight") {
             if (this.state === "PLAYING") {
               e.preventDefault();
               if (!this.keys.boost) this.sound.playBoostBurst();
@@ -2527,44 +2548,200 @@
             this.keys.left = false;
           } else if (e.code === "ArrowRight" || e.code === "KeyD") {
             this.keys.right = false;
-          } else if (e.code === "Space") {
+          } else if (e.code === "Space" || e.code === "ShiftLeft" || e.code === "ShiftRight") {
             this.keys.boost = false;
           }
         });
 
-        // Clear stuck keys on window blur
-        window.addEventListener("blur", () => {
+        // 2. Direct Canvas Touch-and-Drag Steering via Pointer Events API
+        const toCanvasCoords = (clientX, clientY) => {
+          const rect = this.canvas.getBoundingClientRect();
+          const scaleX = rect.width > 0 ? this.width / rect.width : 1;
+          const scaleY = rect.height > 0 ? this.height / rect.height : 1;
+          return {
+            x: (clientX - rect.left) * scaleX,
+            y: (clientY - rect.top) * scaleY
+          };
+        };
+
+        this.canvas.addEventListener("pointerdown", (e) => {
+          if (this.controlMode === "KEYBOARD") return;
+          if (e.pointerType === "mouse" && e.button !== 0) return;
+
+          if (this.state === "PLAYING") {
+            e.preventDefault();
+          }
+          this.sound.resume();
+
+          // If a steering pointer is already active, a second finger tap triggers Rocket Boost!
+          if (this.pointerSteer.active && this.pointerSteer.pointerId !== e.pointerId) {
+            if (!this.touch.boost) this.sound.playBoostBurst();
+            this.touch.boost = true;
+            return;
+          }
+
+          const pt = toCanvasCoords(e.clientX, e.clientY);
+          this.pointerSteer.active = true;
+          this.pointerSteer.pointerId = e.pointerId;
+          this.pointerSteer.pointerType = e.pointerType || "touch";
+          this.pointerSteer.x = pt.x;
+          this.pointerSteer.y = pt.y;
+          this.pointerSteer.anchorX = pt.x;
+          this.pointerSteer.anchorY = pt.y;
+          this.pointerSteer.dragDx = 0;
+          this.pointerSteer.dragDy = 0;
+          this.pointerSteer.hasDragged = false;
+          this.pointerSteer.fadeAlpha = 1.0;
+
+          if (e.pointerType === "touch" || e.pointerType === "pen") {
+            this.lastInputMethod = "TOUCH";
+            this.updateControlHintUI();
+          }
+
+          try {
+            this.canvas.setPointerCapture(e.pointerId);
+          } catch (err) {}
+        }, { passive: false });
+
+        this.canvas.addEventListener("pointermove", (e) => {
+          if (!this.pointerSteer.active || e.pointerId !== this.pointerSteer.pointerId) return;
+          if (this.state === "PLAYING") {
+            e.preventDefault();
+          }
+
+          const pt = toCanvasCoords(e.clientX, e.clientY);
+          const stepDx = pt.x - this.pointerSteer.x;
+          const stepDy = pt.y - this.pointerSteer.y;
+
+          this.pointerSteer.x = pt.x;
+          this.pointerSteer.y = pt.y;
+
+          // Update smoothed relative drag vector for finger-covering-pen occlusion handling
+          const totalDragDist = Math.hypot(pt.x - this.pointerSteer.anchorX, pt.y - this.pointerSteer.anchorY);
+          if (totalDragDist > 10) {
+            this.pointerSteer.hasDragged = true;
+          }
+          if (Math.hypot(stepDx, stepDy) > 1.2) {
+            this.pointerSteer.dragDx = this.pointerSteer.dragDx * 0.65 + stepDx * 0.35;
+            this.pointerSteer.dragDy = this.pointerSteer.dragDy * 0.65 + stepDy * 0.35;
+          }
+        }, { passive: false });
+
+        const releasePointer = (e) => {
+          if (e.pointerId === this.pointerSteer.pointerId) {
+            this.pointerSteer.active = false;
+            this.pointerSteer.pointerId = null;
+            try {
+              if (this.canvas.hasPointerCapture(e.pointerId)) {
+                this.canvas.releasePointerCapture(e.pointerId);
+              }
+            } catch (err) {}
+          } else {
+            // Secondary finger lifted
+            this.touch.boost = false;
+          }
+        };
+
+        this.canvas.addEventListener("pointerup", releasePointer);
+        this.canvas.addEventListener("pointercancel", releasePointer);
+        this.canvas.addEventListener("lostpointercapture", releasePointer);
+
+        // Prevent context menu on long press over canvas
+        this.canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+
+        // Clear all stuck inputs on window blur or tab switch
+        const clearAllInputs = () => {
           this.keys.left = false;
           this.keys.right = false;
           this.keys.boost = false;
-          this.touch.left = false;
-          this.touch.right = false;
           this.touch.boost = false;
+          this.pointerSteer.active = false;
+          this.pointerSteer.pointerId = null;
+        };
+        window.addEventListener("blur", clearAllInputs);
+        document.addEventListener("visibilitychange", () => {
+          if (document.hidden) clearAllInputs();
         });
 
-        // Mobile & Touch Button Bindings
-        const bindHoldButton = (id, prop) => {
-          const el = document.getElementById(id);
-          const start = (ev) => {
+        // 3. Dedicated Touch Boost Button Binding
+        const boostBtn = document.getElementById("btnTouchBoost");
+        if (boostBtn) {
+          const startBoost = (ev) => {
             ev.preventDefault();
-            if (prop === "boost" && !this.touch.boost) this.sound.playBoostBurst();
-            this.touch[prop] = true;
+            ev.stopPropagation();
+            if (!this.touch.boost) this.sound.playBoostBurst();
+            this.touch.boost = true;
           };
-          const end = (ev) => {
+          const endBoost = (ev) => {
             ev.preventDefault();
-            this.touch[prop] = false;
+            ev.stopPropagation();
+            this.touch.boost = false;
           };
-          el.addEventListener("touchstart", start, { passive: false });
-          el.addEventListener("touchend", end, { passive: false });
-          el.addEventListener("touchcancel", end, { passive: false });
-          el.addEventListener("mousedown", start);
-          el.addEventListener("mouseup", end);
-          el.addEventListener("mouseleave", end);
-        };
+          boostBtn.addEventListener("pointerdown", startBoost, { passive: false });
+          boostBtn.addEventListener("pointerup", endBoost, { passive: false });
+          boostBtn.addEventListener("pointercancel", endBoost, { passive: false });
+          boostBtn.addEventListener("pointerleave", endBoost, { passive: false });
+        }
+      }
 
-        bindHoldButton("btnTouchLeft", "left");
-        bindHoldButton("btnTouchRight", "right");
-        bindHoldButton("btnTouchBoost", "boost");
+      /**
+       * Computes continuous proportional steering input [-1..1] from active touch/pointer target.
+       * Never teleports the pen or reverses backward; smoothly rotates the pen toward the finger.
+       */
+      computeTouchSteeringInput() {
+        if (!this.pointerSteer.active || this.controlMode === "KEYBOARD") return 0;
+
+        const dx = this.pointerSteer.x - this.pen.x;
+        const dy = this.pointerSteer.y - this.pen.y;
+        const dist = Math.hypot(dx, dy);
+
+        let desiredAngle = this.pen.angle;
+
+        if (dist > CONFIG.TOUCH_OCCLUSION_RADIUS) {
+          // Finger is clearly ahead/beside the pen: guide directly toward the touch position
+          desiredAngle = Math.atan2(dy, dx);
+          // Re-center swipe anchor smoothly so if the pen catches up to the finger, relative drag is ready
+          this.pointerSteer.anchorX = this.pointerSteer.x;
+          this.pointerSteer.anchorY = this.pointerSteer.y;
+        } else if (this.pointerSteer.hasDragged && Math.hypot(this.pointerSteer.dragDx, this.pointerSteer.dragDy) > 0.5) {
+          // Finger is directly over the pen tip: use the finger's movement direction vector to prevent orbiting
+          desiredAngle = Math.atan2(this.pointerSteer.dragDy, this.pointerSteer.dragDx);
+        } else {
+          // Finger is resting directly on top of the pen without dragging: hold current heading steadily
+          return 0;
+        }
+
+        this.pointerSteer.desiredAngle = desiredAngle;
+
+        // Shortest signed angular difference in [-PI, PI]
+        const angleDiff = Math.atan2(
+          Math.sin(desiredAngle - this.pen.angle),
+          Math.cos(desiredAngle - this.pen.angle)
+        );
+
+        if (Math.abs(angleDiff) < CONFIG.TOUCH_DEADZONE_RAD) {
+          return 0;
+        }
+
+        // Proportional turn rate so small adjustments are silky-smooth and large turns use full turning radius
+        return Math.max(-1, Math.min(1, angleDiff / CONFIG.TOUCH_PROPORTIONAL_ANGLE));
+      }
+
+      updateControlHintUI() {
+        const hintText = document.getElementById("hudControlHintText");
+        const boostContainer = document.getElementById("touchBoostContainer");
+        if (!hintText || !boostContainer) return;
+
+        if (this.controlMode === "KEYBOARD") {
+          hintText.textContent = "⌨️ A/D or ◀/▶ Steer • SPACE Boost • Circle Bad Answers to Grade!";
+          boostContainer.classList.add("hidden");
+        } else if (this.controlMode === "TOUCH" || this.lastInputMethod === "TOUCH") {
+          hintText.textContent = "👆 Touch & drag anywhere on the paper to guide the pen!";
+          boostContainer.classList.remove("hidden");
+        } else {
+          hintText.textContent = "👆 Touch & drag to guide pen • ⌨️ A/D or ◀/▶ Steer • SPACE Boost";
+          boostContainer.classList.remove("hidden");
+        }
       }
 
       setupUIHandlers() {
@@ -2606,6 +2783,23 @@
         click("btnGoMainMenu", () => this.returnToMainMenu());
 
         // Settings Controls
+        click("btnSettingControlMode", () => {
+          const modes = ["AUTO", "TOUCH", "KEYBOARD"];
+          const labels = {
+            AUTO: "AUTO (BOTH)",
+            TOUCH: "TOUCH DRAG",
+            KEYBOARD: "KEYBOARD ONLY"
+          };
+          const nextIdx = (modes.indexOf(this.controlMode) + 1) % modes.length;
+          this.controlMode = modes[nextIdx];
+          if (this.controlMode === "KEYBOARD") {
+            this.pointerSteer.active = false;
+            this.pointerSteer.pointerId = null;
+          }
+          document.getElementById("btnSettingControlMode").textContent = labels[this.controlMode];
+          this.updateControlHintUI();
+        });
+
         click("btnSettingSound", () => this.toggleMute());
 
         const volSlider = document.getElementById("sliderVolume");
@@ -2856,12 +3050,25 @@
           this.triggerCoffeeBossEvent();
         }
 
-        // Read Player Steering & Boost Input
+        // Read Player Steering (Keyboard takes immediate priority if pressed; otherwise Direct Touch-and-Drag Steering)
         let steer = 0;
-        if (this.keys.left || this.touch.left) steer -= 1;
-        if (this.keys.right || this.touch.right) steer += 1;
+        const keySteer = (this.keys.left ? -1 : 0) + (this.keys.right ? 1 : 0);
+
+        if (this.controlMode !== "TOUCH" && keySteer !== 0) {
+          steer = keySteer;
+        } else if (this.controlMode !== "KEYBOARD" && this.pointerSteer.active) {
+          steer = this.computeTouchSteeringInput();
+        }
+
+        // Smooth fade for touch target reticle
+        if (this.pointerSteer.active && this.controlMode !== "KEYBOARD") {
+          this.pointerSteer.fadeAlpha = Math.min(1, this.pointerSteer.fadeAlpha + dt * 8);
+        } else {
+          this.pointerSteer.fadeAlpha = Math.max(0, this.pointerSteer.fadeAlpha - dt * 5);
+        }
+
         this.pen.turnInput = steer;
-        this.pen.isBoosting = this.keys.boost || this.touch.boost;
+        this.pen.isBoosting = (this.controlMode !== "TOUCH" && this.keys.boost) || this.touch.boost;
 
         const bounds = { width: this.width, height: this.height };
         this.pen.update(dt, this.survivalTime, bounds, this.particles, this.sound);
@@ -3104,10 +3311,42 @@
           this.erasers[i].render(ctx);
         }
 
-        // 7. Rocket-Powered Red Grading Pen
+        // 7. Subtle Touch-Steering Guidance Reticle & Vector Line (When Touching Paper)
+        if (this.state === "PLAYING" && this.pointerSteer.fadeAlpha > 0.02) {
+          ctx.save();
+          ctx.globalAlpha = this.pointerSteer.fadeAlpha * 0.65;
+          const tx = this.pointerSteer.x;
+          const ty = this.pointerSteer.y;
+
+          // Faint dashed red-ink guidance line from pen nib to finger target
+          ctx.strokeStyle = "rgba(212, 25, 36, 0.45)";
+          ctx.lineWidth = 2;
+          ctx.setLineDash([6, 6]);
+          ctx.beginPath();
+          ctx.moveTo(this.pen.x, this.pen.y);
+          ctx.lineTo(tx, ty);
+          ctx.stroke();
+          ctx.setLineDash([]);
+
+          // Tactile red-ink target ring at finger position
+          const pulseRadius = 16 + Math.sin(this.globalTime * 12) * 2.5;
+          ctx.strokeStyle = "#d41924";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(tx, ty, pulseRadius, 0, Math.PI * 2);
+          ctx.stroke();
+
+          ctx.fillStyle = "rgba(212, 25, 36, 0.22)";
+          ctx.beginPath();
+          ctx.arc(tx, ty, 4.5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+
+        // 8. Rocket-Powered Red Grading Pen
         this.pen.render(ctx, this.globalTime);
 
-        // 8. Pooled Particles & Score Popups
+        // 9. Pooled Particles & Score Popups
         this.particles.render(ctx);
 
         ctx.restore();
